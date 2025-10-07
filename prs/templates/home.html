@@ -1,0 +1,84 @@
+{% extends "public-base/base-public.html" %}
+{% load static %}
+
+{% block title %}Home - Gestão PRS{% endblock title %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock extra_css %}
+
+{% block content %}
+<!-- Carrossel de Imagens -->
+{% if imagens_carrossel %}
+<div class="carousel-container">
+    <div class="carousel-wrapper">
+        <div class="carousel-track">
+            {% for imagem in imagens_carrossel %}
+            <div class="carousel-slide">
+                <img src="{{ imagem.imagem.url }}" alt="{{ imagem.titulo|default:'Imagem do carrossel' }}">
+                {% if imagem.titulo %}
+                <div class="carousel-caption">
+                    <h3>{{ imagem.titulo }}</h3>
+                    {% if imagem.descricao %}
+                    <p>{{ imagem.descricao }}</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Indicadores -->
+    <div class="carousel-indicators">
+        {% for imagem in imagens_carrossel %}
+        <button class="indicator {% if forloop.first %}active{% endif %}" data-slide="{{ forloop.counter0 }}"></button>
+        {% endfor %}
+    </div>
+    
+    <!-- Controles de navegação -->
+    <button class="carousel-control prev" onclick="changeSlide(-1)">&#10094;</button>
+    <button class="carousel-control next" onclick="changeSlide(1)">&#10095;</button>
+</div>
+{% endif %}
+
+<!-- Conteúdo Principal com Lorem Ipsum -->
+<div class="main-content">
+    <div class="content-section">
+        <h1>Bem-vindo ao Sistema de Gestão PRS</h1>
+        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+        
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>Controle de Produção</h3>
+                <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Relatórios Detalhados</h3>
+                <p>Sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium.</p>
+            </div>
+            
+            <div class="info-card">
+                <h3>Gestão de Qualidade</h3>
+                <p>Doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt.</p>
+            </div>
+        </div>
+        
+        <div class="lorem-content">
+            <h2>Sobre o Sistema</h2>
+            <p>Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem.</p>
+            
+            <p>Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur.</p>
+            
+            <p>At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.</p>
+        </div>
+    </div>
+</div>
+
+
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'js/carousel.js' %}"></script>
+{% endblock extra_js %}

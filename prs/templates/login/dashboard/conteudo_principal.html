@@ -1,0 +1,202 @@
+{% extends 'internal-base/base-dash.html' %}
+
+{% block title %}Gerenciamento de Conteúdo{% endblock %}
+
+{% block title-page %}Gerenciamento de Conteúdo{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Card styling */
+    .card {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem;
+    }
+    
+    .card-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+
+    
+    .carousel-management {
+        background: white;
+        border-radius: 10px;
+        padding: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-top: 2rem;
+    }
+    
+    .carousel-item-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    .carousel-item-card:hover {
+        background: #e9ecef;
+        border-color: #dee2e6;
+    }
+    
+    .form-modern {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border: 1px solid #e9ecef;
+    }
+    
+    .btn-modern {
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .section-title {
+        color: #2c3e50;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header">
+            <h5>Carrossel</h5>
+        </div>
+        <div class="card-body">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <!-- Formulário de Adição -->
+            <div class="col-lg-6 mb-4">
+                <div class="form-container" id="addImageForm">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="imagem">Imagem</label>
+                            <input type="file" class="form-control" id="imagem" name="imagem" accept="image/*" required>
+                            <small class="form-text text-muted">Tamanho recomendado: 1200x400 pixels</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="ordem">Ordem de Exibição</label>
+                            <select class="form-control" id="ordem" name="ordem" required>
+                                {% for i in "12345" %}
+                                    <option value="{{ forloop.counter }}" {% if forloop.counter in ordens_ocupadas %}disabled{% endif %}>
+                                        Posição {{ forloop.counter }}{% if forloop.counter in ordens_ocupadas %} (Ocupada){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary" {% if imagens_carrossel|length >= 5 %}disabled{% endif %}>
+                            {% if imagens_carrossel|length >= 5 %}
+                                Limite Máximo Atingido (5 imagens)
+                            {% else %}
+                                Adicionar Imagem
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Imagens -->
+            <div class="col-lg-6">
+                <h5 class="mb-3 mt-4">
+                    <i class="fas fa-list me-2 text-success"></i>
+                    Imagens Atuais ({{ imagens_carrossel|length }}/5)
+                </h5>
+                {% if imagens_carrossel %}
+                    {% for imagem in imagens_carrossel %}
+                        <div class="carousel-item-card">
+                            <div class="row g-0 align-items-center">
+                                <div class="col-md-4">
+                                    <img src="{{ imagem.imagem.url }}" class="img-fluid rounded" alt="{{ imagem.titulo }}" style="height: 80px; width: 100%; object-fit: cover;">
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="ms-3">
+                                        <h6 class="mb-1">
+                                            <span class="badge bg-primary me-2">{{ imagem.ordem }}</span>
+                                            {% if imagem.titulo %}{{ imagem.titulo }}{% else %}Sem título{% endif %}
+                                        </h6>
+                                        <p class="text-muted small mb-4">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ imagem.data_criacao|date:"d/m/Y H:i" }}
+                                            <i class="fas fa-user ms-2 me-1"></i>
+                                            {{ imagem.criado_por.username }}
+                                        </p>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <form method="post" style="display: inline;">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="toggle_ativo">
+                                                <input type="hidden" name="imagem_id" value="{{ imagem.id }}">
+                                                <button type="submit" class="btn {% if imagem.ativo %}btn-warning{% else %}btn-success{% endif %} btn-sm">
+                                                    <i class="fas {% if imagem.ativo %}fa-eye-slash{% else %}fa-eye{% endif %} me-1"></i>
+                                                    {% if imagem.ativo %}Desativar{% else %}Ativar{% endif %}
+                                                </button>
+                                            </form>
+                                            <form method="post" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja excluir esta imagem?')">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="excluir">
+                                                <input type="hidden" name="imagem_id" value="{{ imagem.id }}">
+                                                <button type="submit" class="btn btn-danger btn-sm">
+                                                    <i class="fas fa-trash me-1"></i>Excluir
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-images text-muted" style="font-size: 3rem;"></i>
+                        <h5 class="text-muted mt-3">Nenhuma imagem adicionada</h5>
+                        <p class="text-muted">Adicione até 5 imagens para o carrossel</p>
+                        <button class="btn btn-primary" onclick="scrollToForm()">
+                            <i class="fas fa-plus me-2"></i>Adicionar Primeira Imagem
+                        </button>
+                    </div>
+                {% endif %}
+        </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function scrollToForm() {
+    document.getElementById('addImageForm').scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'center'
+    });
+    document.getElementById('titulo').focus();
+}
+</script>
+{% endblock %}

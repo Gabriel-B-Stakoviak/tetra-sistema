@@ -1,0 +1,200 @@
+{% extends "internal-base/base-dash.html" %}
+
+{% block title %}Diário de Bordo{% endblock title %}
+
+{% block title-page %}Diário de Bordo{% endblock title-page %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-book"></i> Diário de Bordo - Turno {{ turno_atual }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Informações do Usuário -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <strong>RE:</strong> {{ perfil.re }}<br>
+                                <strong>Nome:</strong> {{ perfil.nome }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-warning">
+                                <strong>Turno:</strong> {{ turno_atual }}<br>
+                                <strong>Data:</strong> {{ data_atual }}<br>
+                                <strong>Horário:</strong> {{ horario_atual }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulário do Diário de Bordo -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.maquina_rodando.id_for_label }}" class="form-label">
+                                        <i class="fas fa-cogs"></i> {{ form.maquina_rodando.label }}
+                                    </label>
+                                    {{ form.maquina_rodando }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.maquina_disponivel.id_for_label }}" class="form-label">
+                                        <i class="fas fa-check-circle"></i> {{ form.maquina_disponivel.label }}
+                                    </label>
+                                    {{ form.maquina_disponivel }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Checkboxes de Ocorrências -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5 class="mb-3"><i class="fas fa-exclamation-triangle"></i> Ocorrências do Turno</h5>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-check mb-2">
+                                    {{ form.troca_tela }}
+                                    <label class="form-check-label" for="{{ form.troca_tela.id_for_label }}">
+                                        {{ form.troca_tela.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.troca_faca }}
+                                    <label class="form-check-label" for="{{ form.troca_faca.id_for_label }}">
+                                        {{ form.troca_faca.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.presenca_materiais_estranhos }}
+                                    <label class="form-check-label" for="{{ form.presenca_materiais_estranhos.id_for_label }}">
+                                        {{ form.presenca_materiais_estranhos.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.material_insuficiente }}
+                                    <label class="form-check-label" for="{{ form.material_insuficiente.id_for_label }}">
+                                        {{ form.material_insuficiente.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mb-2">
+                                    {{ form.autonoma }}
+                                    <label class="form-check-label" for="{{ form.autonoma.id_for_label }}">
+                                        {{ form.autonoma.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.preventiva }}
+                                    <label class="form-check-label" for="{{ form.preventiva.id_for_label }}">
+                                        {{ form.preventiva.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.manutencao_mecanica }}
+                                    <label class="form-check-label" for="{{ form.manutencao_mecanica.id_for_label }}">
+                                        {{ form.manutencao_mecanica.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.manutencao_eletrica }}
+                                    <label class="form-check-label" for="{{ form.manutencao_eletrica.id_for_label }}">
+                                        {{ form.manutencao_eletrica.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check mb-2">
+                                    {{ form.quebra }}
+                                    <label class="form-check-label" for="{{ form.quebra.id_for_label }}">
+                                        {{ form.quebra.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.laminadora_parada }}
+                                    <label class="form-check-label" for="{{ form.laminadora_parada.id_for_label }}">
+                                        {{ form.laminadora_parada.label }}
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    {{ form.outros }}
+                                    <label class="form-check-label" for="{{ form.outros.id_for_label }}">
+                                        {{ form.outros.label }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campo de Observações -->
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.ocorrencias_turno.id_for_label }}" class="form-label">
+                                        <i class="fas fa-comment-alt"></i> {{ form.ocorrencias_turno.label }}
+                                    </label>
+                                    {{ form.ocorrencias_turno }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 text-center">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-save"></i> SALVAR
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+
+.form-check-input {
+    margin-top: 0.25rem;
+}
+
+.form-check-label {
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock content %}

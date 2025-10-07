@@ -1,0 +1,258 @@
+{% extends 'base-dash.html' %}
+{% load static %}
+
+{% block title %}[NOME DA PÁGINA]{% endblock %}
+
+{% block content %}
+<div class="form-page-container">
+    <!-- Cabeçalho da Página -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-[ÍCONE]"></i>
+            [TÍTULO DA PÁGINA]
+        </h1>
+        <p class="page-description">[DESCRIÇÃO DA FUNCIONALIDADE]</p>
+    </div>
+
+    <!-- Seção de Informações Automáticas -->
+    <div class="auto-info-section">
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Data/Hora:</span>
+                <span class="info-value">{{ current_datetime|date:"d/m/Y H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Usuário:</span>
+                <span class="info-value">{{ user.get_full_name|default:user.username }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">RE:</span>
+                <span class="info-value">{{ user.profile.re|default:"N/A" }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Turno:</span>
+                <span class="info-value">{{ current_shift|default:"A definir" }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário Principal -->
+    <div class="form-section">
+        <form method="post" class="standard-form">
+            {% csrf_token %}
+            
+            <!-- EXEMPLO: Campo de texto -->
+            <div class="form-group">
+                <label for="campo_texto" class="form-label">
+                    <i class="fas fa-[ÍCONE]"></i>
+                    [LABEL DO CAMPO]
+                </label>
+                <input type="text" 
+                       id="campo_texto" 
+                       name="campo_texto" 
+                       class="form-input" 
+                       placeholder="[PLACEHOLDER]"
+                       required>
+                <small class="form-help">[TEXTO DE AJUDA OPCIONAL]</small>
+            </div>
+
+            <!-- EXEMPLO: Campo numérico -->
+            <div class="form-group">
+                <label for="campo_numero" class="form-label">
+                    <i class="fas fa-[ÍCONE]"></i>
+                    [LABEL DO CAMPO NUMÉRICO]
+                </label>
+                <input type="number" 
+                       id="campo_numero" 
+                       name="campo_numero" 
+                       class="form-input" 
+                       step="0.1" 
+                       min="0"
+                       placeholder="[PLACEHOLDER]"
+                       required>
+                <small class="form-help">[FAIXA DE VALORES RECOMENDADA]</small>
+            </div>
+
+            <!-- EXEMPLO: Campo de seleção -->
+            <div class="form-group">
+                <label for="campo_select" class="form-label">
+                    <i class="fas fa-[ÍCONE]"></i>
+                    [LABEL DO SELECT]
+                </label>
+                <select id="campo_select" name="campo_select" class="form-select" required>
+                    <option value="">Selecione uma opção</option>
+                    <option value="opcao1">Opção 1</option>
+                    <option value="opcao2">Opção 2</option>
+                    <option value="opcao3">Opção 3</option>
+                </select>
+            </div>
+
+            <!-- EXEMPLO: Campo de data/hora -->
+            <div class="form-group">
+                <label for="campo_datetime" class="form-label">
+                    <i class="fas fa-calendar"></i>
+                    [LABEL DA DATA/HORA]
+                </label>
+                <input type="datetime-local" 
+                       id="campo_datetime" 
+                       name="campo_datetime" 
+                       class="form-input" 
+                       required>
+            </div>
+
+            <!-- EXEMPLO: Campo de texto longo -->
+            <div class="form-group">
+                <label for="campo_textarea" class="form-label">
+                    <i class="fas fa-comment"></i>
+                    [LABEL DO TEXTAREA]
+                </label>
+                <textarea id="campo_textarea" 
+                          name="campo_textarea" 
+                          class="form-textarea" 
+                          rows="4" 
+                          placeholder="[PLACEHOLDER PARA TEXTAREA]"></textarea>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Salvar Registro
+                </button>
+                <button type="reset" class="btn btn-secondary">
+                    <i class="fas fa-undo"></i>
+                    Limpar Campos
+                </button>
+                <a href="{% url 'dashboard' %}" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i>
+                    Voltar ao Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Mensagens de Feedback -->
+    {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+                <div class="message message-{{ message.tags }}">
+                    <i class="fas fa-info-circle"></i>
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validação em tempo real
+    const form = document.querySelector('.standard-form');
+    const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+    
+    inputs.forEach(input => {
+        input.addEventListener('blur', function() {
+            validateField(this);
+        });
+        
+        input.addEventListener('input', function() {
+            if (this.classList.contains('error')) {
+                validateField(this);
+            }
+        });
+    });
+    
+    function validateField(field) {
+        const value = field.value.trim();
+        const fieldGroup = field.closest('.form-group');
+        
+        // Remove classes anteriores
+        fieldGroup.classList.remove('success', 'error');
+        
+        if (field.hasAttribute('required') && !value) {
+            fieldGroup.classList.add('error');
+            return false;
+        }
+        
+        // Validações específicas por tipo
+        if (field.type === 'number') {
+            const numValue = parseFloat(value);
+            const min = parseFloat(field.min);
+            const max = parseFloat(field.max);
+            
+            if (isNaN(numValue) || (min && numValue < min) || (max && numValue > max)) {
+                fieldGroup.classList.add('error');
+                return false;
+            }
+        }
+        
+        if (field.type === 'email') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (value && !emailRegex.test(value)) {
+                fieldGroup.classList.add('error');
+                return false;
+            }
+        }
+        
+        fieldGroup.classList.add('success');
+        return true;
+    }
+    
+    // Validação do formulário antes do envio
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        
+        inputs.forEach(input => {
+            if (!validateField(input)) {
+                isValid = false;
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Por favor, corrija os campos destacados antes de continuar.');
+        }
+    });
+    
+    // ADICIONE AQUI VALIDAÇÕES ESPECÍFICAS DA SUA PÁGINA
+    // Exemplo: validação de datas, cálculos automáticos, etc.
+});
+</script>
+
+<!-- 
+INSTRUÇÕES PARA USO DESTE TEMPLATE:
+
+1. Substitua todos os textos entre [COLCHETES] pelos valores apropriados
+2. Escolha ícones do Font Awesome apropriados para cada campo
+3. Ajuste os tipos de input conforme necessário (text, number, email, date, etc.)
+4. Configure validações específicas no JavaScript
+5. Adicione campos específicos da sua funcionalidade
+6. Teste a responsividade em diferentes tamanhos de tela
+
+TIPOS DE CAMPOS DISPONÍVEIS:
+- text: Texto simples
+- number: Números (com step, min, max)
+- email: E-mail com validação
+- tel: Telefone
+- url: URL
+- date: Data
+- time: Hora
+- datetime-local: Data e hora
+- password: Senha
+- select: Lista de opções
+- textarea: Texto longo
+- checkbox: Caixa de seleção
+- radio: Botão de opção
+
+CLASSES CSS DISPONÍVEIS:
+- form-input: Para inputs padrão
+- form-select: Para selects
+- form-textarea: Para textareas
+- form-checkbox: Para checkboxes
+- form-radio: Para radio buttons
+- btn btn-primary: Botão principal
+- btn btn-secondary: Botão secundário
+- btn btn-outline: Botão com borda
+- btn btn-danger: Botão de perigo
+-->
+{% endblock %}

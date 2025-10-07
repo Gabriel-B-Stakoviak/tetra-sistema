@@ -1,0 +1,119 @@
+{% extends "internal-base/base-dash.html" %}
+
+{% block title %}Fechamento de Turno{% endblock title %}
+
+{% block title-page %}Fechamento de Turno{% endblock title-page %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clock"></i> Fechamento de Turno {{ turno_atual }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Informações do Usuário -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="alert alert-info">
+                                <strong>RE:</strong> {{ perfil.re }}<br>
+                                <strong>Nome:</strong> {{ perfil.nome }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="alert alert-warning">
+                                <strong>Turno:</strong> {{ turno_atual }}<br>
+                                <strong>Horário:</strong> {{ horario_atual }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulário de Fechamento -->
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.fardo_virgem.id_for_label }}" class="form-label">
+                                        <i class="fas fa-box"></i> {{ form.fardo_virgem.label }}
+                                    </label>
+                                    {{ form.fardo_virgem }}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.fardo_laminado.id_for_label }}" class="form-label">
+                                        <i class="fas fa-boxes"></i> {{ form.fardo_laminado.label }}
+                                    </label>
+                                    {{ form.fardo_laminado }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.reversao.id_for_label }}" class="form-label">
+                                        <i class="fas fa-undo"></i> {{ form.reversao.label }}
+                                    </label>
+                                    {{ form.reversao }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.observacao.id_for_label }}" class="form-label">
+                                        <i class="fas fa-comment-alt"></i> {{ form.observacao.label }}
+                                    </label>
+                                    {{ form.observacao }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 text-center">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-save"></i> SALVAR
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    border-radius: 8px;
+    padding: 10px 20px;
+}
+
+.alert {
+    border-radius: 8px;
+}
+</style>
+{% endblock content %}

@@ -1,0 +1,426 @@
+{% extends 'internal-base/base-dash.html' %}
+{% load static %}
+
+{% block title %}Diário de Bordo - Lista{% endblock %}
+
+{% block extra_js %}
+<script>
+// Dados dos registros para o modal
+const registrosData = {
+    {% for registro in registros %}
+    {{ registro.id }}: {
+        data: "{{ registro.data|date:'d/m/Y'|default:'-' }}",
+        turno: "{{ registro.turno|default:'-' }}",
+        re: "{{ registro.re|default:'-' }}",
+        maquina_rodando: "{{ registro.maquina_rodando|default:'-' }}",
+        maquina_disponivel: "{{ registro.maquina_disponivel|default:'-' }}",
+        inicio: "{{ registro.inicio|date:'d/m/Y H:i'|default:'-' }}",
+        fim: "{{ registro.fim|date:'d/m/Y H:i'|default:'Em andamento' }}",
+        data_criacao: "{{ registro.data_criacao|date:'d/m/Y H:i'|default:'-' }}",
+        ocorrencias_turno: "{{ registro.ocorrencias_turno|escapejs|default:'-' }}",
+        // Campos de ocorrências
+        troca_tela: {{ registro.troca_tela|yesno:"true,false" }},
+        troca_faca: {{ registro.troca_faca|yesno:"true,false" }},
+        presenca_materiais_estranhos: {{ registro.presenca_materiais_estranhos|yesno:"true,false" }},
+        material_insuficiente: {{ registro.material_insuficiente|yesno:"true,false" }},
+        autonoma: {{ registro.autonoma|yesno:"true,false" }},
+        preventiva: {{ registro.preventiva|yesno:"true,false" }},
+        manutencao_mecanica: {{ registro.manutencao_mecanica|yesno:"true,false" }},
+        manutencao_eletrica: {{ registro.manutencao_eletrica|yesno:"true,false" }},
+        quebra: {{ registro.quebra|yesno:"true,false" }},
+        laminadora_parada: {{ registro.laminadora_parada|yesno:"true,false" }},
+        outros: {{ registro.outros|yesno:"true,false" }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+};
+
+function verDetalhes(registroId) {
+    const registro = registrosData[registroId];
+    if (!registro) return;
+    
+    const modalBody = document.getElementById('modalDetalhesBody');
+    
+    // Criar lista de ocorrências marcadas
+    const ocorrenciasMarcadas = [];
+    if (registro.troca_tela) ocorrenciasMarcadas.push('Troca Tela');
+    if (registro.troca_faca) ocorrenciasMarcadas.push('Troca Faca');
+    if (registro.presenca_materiais_estranhos) ocorrenciasMarcadas.push('Presença de Materiais Estranhos');
+    if (registro.material_insuficiente) ocorrenciasMarcadas.push('Material Insuficiente');
+    if (registro.autonoma) ocorrenciasMarcadas.push('Autônoma');
+    if (registro.preventiva) ocorrenciasMarcadas.push('Preventiva');
+    if (registro.manutencao_mecanica) ocorrenciasMarcadas.push('Manutenção Mecânica');
+    if (registro.manutencao_eletrica) ocorrenciasMarcadas.push('Manutenção Elétrica');
+    if (registro.quebra) ocorrenciasMarcadas.push('Quebra');
+    if (registro.laminadora_parada) ocorrenciasMarcadas.push('Laminadora Parada');
+    if (registro.outros) ocorrenciasMarcadas.push('Outros');
+    
+    modalBody.innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6><i class="fas fa-calendar"></i> Informações Básicas</h6>
+                <table class="table table-sm">
+                     <tr><td><strong>Data:</strong></td><td>${registro.data}</td></tr>
+                     <tr><td><strong>Turno:</strong></td><td>${registro.turno}</td></tr>
+                     <tr><td><strong>RE:</strong></td><td>${registro.re}</td></tr>
+                 </table>
+            </div>
+            <div class="col-md-6">
+                <h6><i class="fas fa-cogs"></i> Máquinas</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>Máq. Rodando:</strong></td><td>${registro.maquina_rodando}</td></tr>
+                    <tr><td><strong>Máq. Disponível:</strong></td><td>${registro.maquina_disponivel}</td></tr>
+                    <tr><td><strong>Início:</strong></td><td>${registro.inicio}</td></tr>
+                    <tr><td><strong>Fim:</strong></td><td>${registro.fim}</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="row mt-3">
+            <div class="col-12">
+                <h6><i class="fas fa-exclamation-triangle"></i> Tipos de Ocorrências Marcadas</h6>
+                <div class="mb-3">
+                    ${ocorrenciasMarcadas.length > 0 ? 
+                        ocorrenciasMarcadas.map(item => `<span class="badge bg-primary me-1">${item}</span>`).join('') :
+                        '<span class="text-muted">Nenhuma ocorrência marcada</span>'
+                    }
+                </div>
+            </div>
+        </div>
+        
+        ${registro.ocorrencias_turno !== '-' ? `
+        <div class="row">
+            <div class="col-12">
+                <h6><i class="fas fa-comment-alt"></i> Observações do Turno</h6>
+                <div class="p-3 bg-light border rounded" style="word-wrap: break-word; word-break: break-word; white-space: pre-wrap; max-width: 100%; overflow-wrap: break-word;">
+                    ${registro.ocorrencias_turno}
+                </div>
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    // Abrir o modal
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
+    modal.show();
+}
+
+function finalizarTurno(registroId) {
+    // Confirmar ação
+    if (!confirm('Tem certeza que deseja finalizar este turno? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+    
+    // Desabilitar o botão para evitar cliques duplos
+    const btn = document.getElementById(`btnFinalizar${registroId}`);
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finalizando...';
+    
+    // Fazer requisição AJAX
+    fetch(`/finalizar-diario-bordo/${registroId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Atualizar a célula com o horário de fim
+            const cell = btn.parentElement;
+            cell.innerHTML = `<span class="status-sim">${data.fim_formatado}</span>`;
+            
+            // Mostrar mensagem de sucesso
+            alert('Turno finalizado com sucesso!');
+            
+            // Atualizar os dados do modal se necessário
+            if (registrosData[registroId]) {
+                registrosData[registroId].fim = data.fim;
+            }
+        } else {
+            // Reabilitar o botão em caso de erro
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            alert('Erro ao finalizar turno. Tente novamente.');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        // Reabilitar o botão em caso de erro
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        alert('Erro ao finalizar turno. Tente novamente.');
+    });
+}
+</script>
+{% endblock %}
+
+{% block title-page %}Diário de Bordo - Lista{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Card da tabela */
+    .card {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem;
+    }
+    
+    .card-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    /* Tabela */
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table thead th {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 0.75rem;
+        text-align: center;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+        text-align: center;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    /* Badges para turnos */
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+    }
+    
+    .badge-turno-1 { background: #007bff; color: white; }
+    .badge-turno-2 { background: #28a745; color: white; }
+    .badge-turno-3 { background: #ffc107; color: black; }
+    
+    .status-sim { color: #28a745; font-weight: bold; }
+    .status-nao { color: #6c757d; }
+    
+    /* Empty state */
+    .empty-state {
+        padding: 3rem 2rem;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+    
+    /* Texto pequeno */
+    .text-muted {
+        color: #6c757d !important;
+    }
+    
+    /* Ocorrências */
+    .ocorrencias-container {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .ocorrencia-texto {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #007bff;
+    }
+    
+    .resumo-texto {
+        line-height: 1.4;
+        word-wrap: break-word;
+    }
+    
+    .btn-sm {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        /* Controle de quebra de texto no modal */
+        .modal-dialog {
+            max-width: 90%;
+        }
+        
+        .modal-body {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        .modal-body .bg-light {
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+            max-width: 100%;
+            overflow-wrap: break-word;
+        }
+</style>
+{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-10 col-lg-11">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-end mb-3">
+                        <a href="{% url 'diario-bordo' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Novo Registro
+                        </a>
+                    </div>
+                    
+                    {% if registros %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Turno</th>
+                                    <th>RE</th>
+                                    <th>Máq. Rodando</th>
+                                    <th>Máq. Disponível</th>
+                                    <th>Início</th>
+                                    <th>Fim</th>
+                                    <th>Ocorrências</th>
+                                    <th>Criado em</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for registro in registros %}
+                                <tr>
+                                    <td>
+                                        {% if registro.data %}
+                                            {{ registro.data|date:"d/m/Y" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if registro.turno %}
+                                            <span class="badge badge-turno-{{ registro.turno }}">
+                                                {{ registro.turno }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ registro.re|default:"-" }}</td>
+                                    <td>
+                                        <strong>{{ registro.maquina_rodando }}</strong>
+                                    </td>
+                                    <td>
+                                        <strong>{{ registro.maquina_disponivel }}</strong>
+                                    </td>
+                                    <td>
+                        {% if registro.inicio %}
+                            {{ registro.inicio|date:"H:i" }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                                    <td>
+                                        {% if registro.fim %}
+                                            <span class="status-sim">{{ registro.fim|date:"H:i" }}</span>
+                                        {% else %}
+                                            <button class="btn btn-sm btn-success" 
+                                                    onclick="finalizarTurno({{ registro.id }})"
+                                                    id="btnFinalizar{{ registro.id }}">
+                                                <i class="fas fa-stop"></i> Finalizar
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <!-- Apenas o texto das ocorrências -->
+                                        {% if registro.ocorrencias_turno %}
+                                            <small class="text-muted">
+                                                {% if registro.ocorrencias_turno|length > 22 %}
+                                                    {{ registro.ocorrencias_turno|slice:":22" }}...
+                                                {% else %}
+                                                    {{ registro.ocorrencias_turno }}
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if registro.data_criacao %}
+                                            {{ registro.data_criacao|date:"H:i" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" 
+                                                onclick="verDetalhes({{ registro.id }})">
+                                            <i class="fas fa-eye"></i> Ver mais
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-clipboard-list"></i>
+                        <h4>Nenhum registro encontrado</h4>
+                        <p>Ainda não há registros no Diário de Bordo.</p>
+                        <a href="{% url 'diario-bordo' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i>
+                            Criar Primeiro Registro
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para exibir detalhes do registro -->
+<div class="modal fade" id="modalDetalhes" tabindex="-1" aria-labelledby="modalDetalhesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetalhesLabel">
+                    <i class="fas fa-clipboard-list"></i> Detalhes do Registro
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalDetalhesBody">
+                <!-- Conteúdo será preenchido via JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

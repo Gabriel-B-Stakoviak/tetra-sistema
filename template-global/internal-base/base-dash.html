@@ -1,0 +1,265 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema Tetrapak{% endblock title %}</title>
+    <link rel="stylesheet" href="{% static 'css/sidebar-layout.css' %}">
+    <link rel="stylesheet" href="{% static 'css/form-pages.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_css %}{% endblock extra_css %}
+</head>
+<body>
+    {% csrf_token %}
+    
+    <!-- Botão toggle mobile -->
+    <button class="mobile-toggle" id="mobileToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Overlay para mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <!-- Container principal -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Perfil do usuário -->
+            <div class="user-profile">
+                <div class="user-avatar">
+                    {{ user.perfil.nome|first|upper }}
+                </div>
+                <div class="user-info">
+                    <h3>{{ user.perfil.nome }}</h3>
+                    <p>{{ user.perfil.get_cargo_display }}</p>
+                    <span class="user-re">RE: {{ user.perfil.re }}</span>
+                </div>
+            </div>
+            
+            <!-- Menu de navegação -->
+            <nav class="sidebar-nav">
+                <!-- Fechamento de Turno -->
+                <div class="nav-item">
+                    <a href="{% url 'fechamentoTurno' %}" class="nav-link">
+                        <i class="fas fa-clock nav-icon"></i>
+                        <span>Fechamento de Turno</span>
+                    </a>
+                </div>
+                
+                <!-- Carregamento -->
+                <div class="nav-item">
+                    <a href="{% url 'carregamento' %}" class="nav-link">
+                        <i class="fas fa-truck-loading nav-icon"></i>
+                        <span>Carregamento</span>
+                    </a>
+                </div>
+                
+                <!-- Dropdown Extrusora -->
+                <div class="nav-item dropdown" id="extrusoraDropdown">
+                    <div class="dropdown-toggle">
+                        <div>
+                            <i class="fas fa-industry nav-icon"></i>
+                            <span>Extrusora</span>
+                        </div>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="{% url 'diario-bordo-lista' %}" class="dropdown-item">
+                            <i class="fas fa-book"></i> Diário de Bordo
+                        </a>
+                        <a href="{% url 'agua-extrusoura' %}" class="dropdown-item">
+                            <i class="fas fa-tint"></i> Água Extrusora
+                        </a>
+                        <a href="{% url 'fechamento-bag-pe' %}" class="dropdown-item">
+                            <i class="fas fa-archive"></i> Fechamento de Bag
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Inventário -->
+                <div class="nav-item">
+                    <a href="{% url 'inventario' %}" class="nav-link">
+                        <i class="fas fa-boxes nav-icon"></i>
+                        <span>Inventário</span>
+                    </a>
+                </div>
+                
+                <!-- PLIL -->
+                <div class="nav-item">
+                    <a href="{% url 'plil' %}" class="nav-link">
+                        <i class="fas fa-clipboard-list nav-icon"></i>
+                        <span>PLIL</span>
+                    </a>
+                </div>
+                
+                <!-- Etiqueta -->
+                <div class="nav-item">
+                    <a href="{% url 'etiqueta' %}" class="nav-link">
+                        <i class="fas fa-tags nav-icon"></i>
+                        <span>Etiqueta</span>
+                    </a>
+                </div>
+                
+                <!-- Dropdown Dashboard (apenas para gerentes e admins) -->
+                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
+                <div class="nav-item dropdown" id="dashboardDropdown">
+                    <div class="dropdown-toggle">
+                        <div>
+                            <i class="fas fa-chart-bar nav-icon"></i>
+                            <span>Dashboard</span>
+                        </div>
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="{% url 'relatorioTurno' %}" class="dropdown-item">
+                            <i class="fas fa-clock"></i> Relatório de Turno
+                        </a>
+                        <a href="{% url 'relatorioExtrusoura' %}" class="dropdown-item">
+                            <i class="fas fa-industry"></i> Relatório Extrusora
+                        </a>
+                        <a href="{% url 'relatorioCarregamento' %}" class="dropdown-item">
+                            <i class="fas fa-truck"></i> Relatório Carregamento
+                        </a>
+                        <a href="{% url 'relatorioPlil' %}" class="dropdown-item">
+                            <i class="fas fa-list-alt"></i> Relatório PLIL
+                        </a>
+                        <a href="{% url 'relatorioEtiquetas' %}" class="dropdown-item">
+                            <i class="fas fa-tag"></i> Relatório Etiquetas
+                        </a>
+                        <a href="{% url 'relatorioGeral' %}" class="dropdown-item">
+                            <i class="fas fa-chart-line"></i> Relatório Geral
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Conteúdo Principal (apenas para gerentes e admins) -->
+                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
+                <div class="nav-item">
+                    <a href="{% url 'conteudoPrincipal' %}" class="nav-link">
+                        <i class="fas fa-home nav-icon"></i>
+                        <span>Página Carrossel</span>
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Cadastro e Gerenciamento (apenas para gerentes e admins) -->
+                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
+                <div class="nav-item">
+                    <a href="{% url 'cadastrosGerenciamento' %}" class="nav-link">
+                        <i class="fas fa-users-cog nav-icon"></i>
+                        <span>Cadastro e Gerenciamento</span>
+                    </a>
+                </div>
+                {% endif %}
+                
+                <!-- Configuração -->
+                <div class="nav-item">
+                    <a href="{% url 'configuracao' %}" class="nav-link">
+                        <i class="fas fa-cog nav-icon"></i>
+                        <span>Configuração</span>
+                    </a>
+                </div>
+            </nav>
+            
+            <!-- Botão de logout -->
+            <div class="logout-section">
+                <a href="{% url 'logout' %}" class="logout-btn">
+                    <i class="fas fa-sign-out-alt nav-icon"></i>
+                    <span>Sair</span>
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Área de conteúdo -->
+        <main class="content-area" id="contentArea">
+            <div class="page-header">
+                <h1>{% block title-page %}{% endblock title-page %}</h1>
+            </div>
+            {% block content %}{% endblock content %}
+        </main>
+    </div>
+    
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileToggle = document.getElementById('mobileToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const contentArea = document.getElementById('contentArea');
+            
+            // Toggle mobile menu
+            mobileToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+                sidebarOverlay.classList.toggle('active');
+                
+                if (window.innerWidth <= 768) {
+                    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
+                }
+            });
+            
+            // Close sidebar when clicking overlay
+            sidebarOverlay.addEventListener('click', function() {
+                sidebar.classList.remove('open');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            });
+            
+            // Handle dropdowns
+            const dropdowns = document.querySelectorAll('.dropdown');
+            dropdowns.forEach(dropdown => {
+                const toggle = dropdown.querySelector('.dropdown-toggle');
+                toggle.addEventListener('click', function() {
+                    // Close other dropdowns
+                    dropdowns.forEach(otherDropdown => {
+                        if (otherDropdown !== dropdown) {
+                            otherDropdown.classList.remove('open');
+                        }
+                    });
+                    
+                    // Toggle current dropdown
+                    dropdown.classList.toggle('open');
+                });
+            });
+            
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    dropdowns.forEach(dropdown => {
+                        dropdown.classList.remove('open');
+                    });
+                }
+            });
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    sidebar.classList.remove('open');
+                    sidebarOverlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Set active nav item based on current URL
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link, .dropdown-item');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                    
+                    // If it's a dropdown item, open the parent dropdown
+                    const parentDropdown = link.closest('.dropdown');
+                    if (parentDropdown) {
+                        parentDropdown.classList.add('open');
+                    }
+                }
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock extra_js %}
+</body>
+</html>

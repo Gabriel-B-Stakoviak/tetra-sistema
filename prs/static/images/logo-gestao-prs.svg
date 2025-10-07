@@ -1,0 +1,22 @@
+<svg width="200" height="60" viewBox="0 0 200 60" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .logo-text {
+        font-family: 'Arial Black', Arial, sans-serif;
+        font-weight: 900;
+        font-size: 24px;
+        fill: #1e3a8a;
+        letter-spacing: -1px;
+      }
+      .logo-accent {
+        fill: #fbbf24;
+      }
+    </style>
+  </defs>
+  
+  <!-- Texto principal GESTÃO-PRS -->
+  <text x="10" y="35" class="logo-text">GESTÃO-PRS</text>
+  
+  <!-- Linha amarela decorativa -->
+  <rect x="10" y="42" width="40" height="4" class="logo-accent" rx="2"/>
+</svg>

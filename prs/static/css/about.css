@@ -1,0 +1,179 @@
+/* Página Sobre - Estilos */
+
+.about-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #000000;
+}
+
+.about-header {
+    text-align: center;
+    margin-bottom: 60px;
+    padding-bottom: 30px;
+    border-bottom: 3px solid #FFD300;
+}
+
+.about-header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #1A1AFF;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.about-header .subtitle {
+    font-size: 1.2rem;
+    color: #000000;
+    font-weight: 300;
+    margin: 0;
+}
+
+.about-sections {
+    display: grid;
+    gap: 50px;
+}
+
+.about-section {
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.about-section:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+}
+
+.about-section h2 {
+    font-size: 2rem;h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-weight: 600;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}   border-radius: 2px;
+}
+
+.about-section p {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 20px;
+    text-align: justify;
+    line-height: 1.8;
+}
+
+.about-section p:last-child {
+    margin-bottom: 0;
+}
+
+/* Cores consistentes para todas as seções */
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .about-container {
+        padding: 20px 15px;
+    }
+    
+    .about-header {
+        margin-bottom: 40px;
+    }
+    
+    .about-header h1 {
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+    }
+    
+    .about-header .subtitle {
+        font-size: 1rem;
+    }
+    
+    .about-sections {
+        gap: 30px;
+    }
+    
+    .about-section {
+        padding: 25px 20px;
+    }
+    
+    .about-section h2 {
+        font-size: 1.6rem;
+        margin-bottom: 20px;
+    }
+    
+    .about-section p {
+        font-size: 1rem;
+        text-align: left;
+    }
+}
+
+@media (max-width: 480px) {
+    .about-container {
+        padding: 15px 10px;
+    }
+    
+    .about-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .about-section {
+        padding: 20px 15px;
+        border-left-width: 3px;
+    }
+    
+    .about-section h2 {
+        font-size: 1.4rem;
+    }
+    
+    .about-section h2::after {
+        width: 40px;
+        height: 2px;
+    }
+}
+
+/* Animações suaves */
+.about-section {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.about-section:nth-child(1) {
+    animation-delay: 0.1s;
+}
+
+.about-section:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.about-section:nth-child(3) {
+    animation-delay: 0.3s;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Atualização para resolver problema de cache */

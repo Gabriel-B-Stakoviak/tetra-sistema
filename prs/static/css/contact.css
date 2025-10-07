@@ -1,0 +1,342 @@
+/* Página de Contato - Estilos */
+
+.contact-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #000000;
+}
+
+.contact-header {
+    text-align: center;
+    margin-bottom: 50px;
+    padding-bottom: 30px;
+    border-bottom: 3px solid #FFD300;
+}
+
+.contact-header h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #1A1AFF;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.contact-header .subtitle {
+    font-size: 1.2rem;
+    color: #000000;
+    font-weight: 300;
+    margin: 0;
+}
+
+.contact-content {
+    display: flex;
+    justify-content: center;
+}
+
+.developer-info {
+    background: #ffffff;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+}
+
+.avatar-section {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.avatar-placeholder {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 48px;
+    color: white;
+}
+
+.avatar-section h2 {
+    font-size: 2.2rem;
+    color: #2c3e50;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.role {
+    font-size: 1.1rem;
+    color: #6c757d;
+    font-weight: 500;
+    margin: 0;
+}
+
+.about-developer,
+.contact-links,
+.project-info {
+    margin-bottom: 35px;
+}
+
+.about-developer h3,
+.contact-links h3,
+.project-info h3 {
+    font-size: 1.5rem;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-weight: 600;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.about-developer h3::after,
+.contact-links h3::after,
+.project-info h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 2px;
+}
+
+.about-developer p,
+.project-info p {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 15px;
+    text-align: justify;
+    line-height: 1.8;
+}
+
+.links-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.github-link {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background: #ffffff;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e9ecef;
+}
+
+.github-link:hover {
+    transform: translateY(-3px);
+    background: #f8f9fa;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.link-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 20px;
+    font-size: 20px;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.link-icon:hover {
+    transform: scale(1.1);
+}
+
+.link-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.link-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.link-description {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .contact-container {
+        padding: 20px 15px;
+    }
+    
+    .contact-header {
+        margin-bottom: 30px;
+    }
+    
+    .contact-header h1 {
+        font-size: 2.2rem;
+        letter-spacing: 1px;
+    }
+    
+    .contact-header .subtitle {
+        font-size: 1rem;
+    }
+    
+    .developer-info {
+        padding: 25px 20px;
+    }
+    
+    .avatar-placeholder {
+        width: 100px;
+        height: 100px;
+        font-size: 2.5rem;
+    }
+    
+    .avatar-section h2 {
+        font-size: 1.8rem;
+    }
+    
+    .about-developer h3,
+    .contact-links h3,
+    .project-info h3 {
+        font-size: 1.3rem;
+    }
+    
+    .github-link {
+        padding: 15px;
+    }
+    
+    .link-icon {
+        width: 40px;
+        height: 40px;
+        margin-right: 15px;
+    }
+    
+    .link-title {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .contact-container {
+        padding: 15px 10px;
+    }
+    
+    .contact-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .developer-info {
+        padding: 20px 15px;
+    }
+    
+    .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+    }
+    
+    .avatar-section h2 {
+        font-size: 1.5rem;
+    }
+    
+    .about-developer h3,
+    .contact-links h3,
+    .project-info h3 {
+        font-size: 1.2rem;
+    }
+    
+    .about-developer h3::after,
+    .contact-links h3::after,
+    .project-info h3::after {
+        width: 30px;
+        height: 2px;
+    }
+    
+    .about-developer p,
+    .project-info p {
+        text-align: left;
+        font-size: 0.95rem;
+    }
+}
+
+/* Animações */
+.developer-info {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.avatar-section {
+    animation: fadeInDown 0.6s ease-out 0.2s both;
+}
+
+.about-developer {
+    animation: fadeInLeft 0.6s ease-out 0.4s both;
+}
+
+.contact-links {
+    animation: fadeInRight 0.6s ease-out 0.6s both;
+}
+
+.project-info {
+    animation: fadeInUp 0.6s ease-out 0.8s both;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

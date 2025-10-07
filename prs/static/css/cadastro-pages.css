@@ -1,0 +1,214 @@
+/* ===================================
+   CSS PADRONIZADO - PÁGINAS DE CADASTRO
+   ===================================
+   Arquivo para padronizar todas as páginas de cadastro de informações
+   Aplicado em: Água da Extrusora, Diário de Bordo, etc.
+*/
+
+/* === LAYOUT GERAL === */
+.cadastro-container {
+    padding: 0;
+}
+
+.cadastro-card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.cadastro-header {
+    border-radius: 10px 10px 0 0;
+    padding: 1rem 1.5rem;
+}
+
+.cadastro-body {
+    padding: 1rem 1.5rem;
+}
+
+/* === FORMULÁRIOS === */
+.cadastro-form .form-control {
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.cadastro-form .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+.cadastro-form .form-control:valid {
+    border-color: #28a745;
+}
+
+.cadastro-form .form-control:invalid:not(:placeholder-shown) {
+    border-color: #dc3545;
+}
+
+/* === LABELS === */
+.cadastro-form .form-label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 14px;
+}
+
+.cadastro-form .form-label i {
+    margin-right: 0.5rem;
+    color: #007bff;
+}
+
+/* === GRUPOS DE FORMULÁRIO === */
+.cadastro-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.cadastro-form .form-group.success .form-control {
+    border-color: #28a745;
+    background-color: #f8fff9;
+}
+
+.cadastro-form .form-group.error .form-control {
+    border-color: #dc3545;
+    background-color: #fff8f8;
+}
+
+/* === BOTÕES === */
+.cadastro-actions {
+    text-align: center;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e9ecef;
+    margin-top: 2rem;
+}
+
+.cadastro-btn {
+    border-radius: 8px;
+    padding: 12px 30px;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    margin: 0 0.5rem;
+    min-width: 120px;
+}
+
+.cadastro-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.cadastro-btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    color: white;
+}
+
+.cadastro-btn-secondary {
+    background: #6c757d;
+    border: none;
+    color: white;
+}
+
+/* === ALERTAS E MENSAGENS === */
+.cadastro-alert {
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+}
+
+.cadastro-feedback {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    display: none;
+}
+
+.cadastro-feedback.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.cadastro-feedback.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* === HEADER COMPACTO === */
+.cadastro-header-info {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.cadastro-header-info i {
+    margin-right: 0.3rem;
+}
+
+/* === RESPONSIVIDADE === */
+@media (max-width: 768px) {
+    .cadastro-container {
+        margin: 0 10px;
+    }
+    
+    .cadastro-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .cadastro-body {
+        padding: 1rem;
+    }
+    
+    .cadastro-btn {
+        width: 100%;
+        margin: 0.25rem 0;
+    }
+    
+    .cadastro-header-info {
+        font-size: 12px;
+    }
+}
+
+/* === ANIMAÇÕES === */
+.cadastro-form .form-control {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.cadastro-card {
+    transition: box-shadow 0.3s ease;
+}
+
+.cadastro-card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* === VALIDAÇÃO VISUAL === */
+.field-valid {
+    position: relative;
+}
+
+.field-valid::after {
+    content: "✓";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #28a745;
+    font-weight: bold;
+}
+
+.field-invalid {
+    position: relative;
+}
+
+.field-invalid::after {
+    content: "✗";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #dc3545;
+    font-weight: bold;
+}

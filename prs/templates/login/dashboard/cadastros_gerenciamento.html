@@ -1,0 +1,625 @@
+{% extends 'internal-base/base-dash.html' %}
+
+{% block title %}Cadastro e Gerenciamento{% endblock %}
+
+{% block title-page %}Cadastro e Gerenciamento{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Layout básico */
+    
+    /* Card da tabela */
+    .card {
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1rem;
+    }
+    
+    .card-header h5 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    /* Tabela */
+    .table {
+        margin-bottom: 0;
+    }
+    
+    .table thead th {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        font-weight: 600;
+        padding: 0.75rem;
+        text-align: center;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+        text-align: center;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    /* RE styling */
+    .re-number {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #495057;
+        background-color: #e9ecef;
+        padding: 0.25rem 0.5rem;
+        border-radius: 3px;
+    }
+    
+    /* Badges para cargos */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.6rem;
+        border-radius: 3px;
+        font-weight: 600;
+    }
+    
+    .cargo-administrador {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .cargo-gerente {
+        background-color: #fd7e14;
+        color: white;
+    }
+    
+    .cargo-administrativo {
+        background-color: #007bff;
+        color: white;
+    }
+    
+    .cargo-operador {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    /* Status */
+    .status-ativo {
+        color: #28a745;
+        font-weight: 600;
+    }
+    
+    .status-inativo {
+        color: #dc3545;
+        font-weight: 600;
+    }
+    
+    /* Empty state */
+    .empty-state {
+        padding: 3rem 2rem;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    /* Botões */
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+        border-radius: 3px;
+    }
+    
+    .btn-outline-primary {
+        color: #007bff;
+        border-color: #007bff;
+        background-color: transparent;
+    }
+    
+    .btn-outline-primary:hover {
+        color: white;
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    
+    .btn-outline-warning {
+        color: #ffc107;
+        border-color: #ffc107;
+        background-color: transparent;
+    }
+    
+    .btn-outline-warning:hover {
+        color: #212529;
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+    
+    /* Texto pequeno */
+    .text-muted {
+        color: #6c757d !important;
+    }
+    
+    .text-warning {
+        color: #ffc107 !important;
+        font-weight: 600;
+    }
+    
+    /* Modal */
+    .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .info-row {
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 0.25rem;
+    }
+    
+    .info-value {
+        color: #6c757d;
+    }
+    
+    /* User info styling */
+    .user-info-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .user-info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-icon {
+        margin-right: 1rem;
+        width: 20px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+    
+    .info-icon i {
+        font-size: 1rem;
+    }
+    
+    .info-content {
+        flex: 1;
+    }
+    
+    .user-info-item .info-label {
+        font-weight: 600;
+        color: #6c757d;
+        margin-bottom: 0.2rem;
+        font-size: 0.85rem;
+    }
+    
+    .user-info-item .info-value {
+        color: #212529;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 1rem;
+        }
+        
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .table-responsive {
+            border-radius: 5px;
+        }
+        
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.5rem;
+        }
+        
+        .re-number {
+            font-size: 0.8rem;
+            padding: 0.2rem 0.4rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-xl-10 col-lg-11">
+            <div class="card">
+                <div class="card-header text-center">
+                    <h5>Contas Registradas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                            <tr>
+                                <th>RE</th>
+                                <th>Nome</th>
+                                <th>Cargo</th>
+                                <th>Status</th>
+                                <th>Data Criação</th>
+                                <th>Último Login</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                    <tbody>
+                        {% if usuarios_com_forms %}
+                            {% for usuario_form in usuarios_com_forms %}
+                                <tr>
+                                    <td>
+                                        <span class="re-number">{{ usuario_form.usuario.re }}</span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ usuario_form.usuario.nome }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ usuario_form.usuario.user.username }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge cargo-{{ usuario_form.usuario.cargo|lower }}">
+                                            {{ usuario_form.usuario.get_cargo_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if usuario_form.usuario.ativo %}
+                                            <span class="status-ativo">
+                                                ✓ Ativo
+                                            </span>
+                                        {% else %}
+                                            <span class="status-inativo">
+                                                ✗ Inativo
+                                            </span>
+                                        {% endif %}
+                                        {% if usuario_form.usuario.force_password_reset %}
+                                            <br><small class="text-warning">⚠ Reset senha</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ usuario_form.usuario.data_criacao|date:"d/m/Y" }}</small>
+                                        <br>
+                                        <small class="text-muted">{{ usuario_form.usuario.data_criacao|date:"H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        {% if usuario_form.usuario.user.last_login %}
+                                            <small>{{ usuario_form.usuario.user.last_login|date:"d/m/Y" }}</small>
+                                            <br>
+                                            <small class="text-muted">{{ usuario_form.usuario.user.last_login|date:"H:i" }}</small>
+                                        {% else %}
+                                            <small class="text-muted">Nunca logou</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="visualizarCadastro('{{ usuario_form.usuario.re }}', '{{ usuario_form.usuario.id }}', '{{ usuario_form.usuario.nome }}', '{{ usuario_form.usuario.cargo }}', {{ usuario_form.usuario.ativo|yesno:"true,false" }})">
+                                            👁 Ver
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <p>Nenhum usuário registrado no sistema.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para visualizar cadastro -->
+<div class="modal fade" id="modalVisualizarCadastro" tabindex="-1" aria-labelledby="modalVisualizarCadastroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalVisualizarCadastroLabel">
+                    <i class="fas fa-user-circle me-2"></i>Detalhes do Usuário
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row">
+                    <!-- Coluna de Informações -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Informações do Usuário</h5>
+                        <div id="modalCadastroContent">
+                            <!-- Conteúdo será carregado via JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Coluna de Edição (apenas para gerentes/admins) -->
+                    <div class="col-md-6" id="editarUsuarioColumn" style="display: none;">
+                        <h5 class="mb-3"><i class="fas fa-edit me-2"></i>Editar Usuário</h5>
+                        
+                        <!-- Linha de divisão -->
+                        <hr style="border: none; height: 1px; background-color: #dee2e6; margin: 1rem 0;">
+                        
+                        <form id="formEditarUsuario" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" id="editUsuarioId" name="usuario_id">
+                            <input type="hidden" name="acao" value="editar_usuario">
+                            
+                            <div class="user-info-item">
+                                <div class="info-icon"><i class="fas fa-user-tag"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Cargo</div>
+                                    <select class="form-select" id="editCargo" name="cargo" style="border: none; background: transparent; padding: 0; font-size: 1rem; font-weight: 500;">
+                                        <option value="operador">👤 Operador</option>
+                                        <option value="administrativo">📋 Administrativo</option>
+                                        <option value="gerente">👔 Gerente</option>
+                                        <option value="administrador">👑 Administrador</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="user-info-item">
+                                <div class="info-icon"><i class="fas fa-lock"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Nova Senha</div>
+                                    <input type="password" class="form-control" id="editNovaSenha" name="nova_senha" placeholder="Deixe em branco para manter a senha atual" style="border: none; background: transparent; padding: 0; font-size: 1rem; font-weight: 500;">
+                                </div>
+                            </div>
+                            
+                            <div class="user-info-item">
+                                <div class="info-icon"><i class="fas fa-lock"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Confirmar Nova Senha</div>
+                                    <input type="password" class="form-control" id="editConfirmarSenha" name="confirmar_senha" placeholder="Confirme a nova senha" style="border: none; background: transparent; padding: 0; font-size: 1rem; font-weight: 500;">
+                                </div>
+                            </div>
+                            
+                            <div class="user-info-item">
+                                <div class="info-icon"><i class="fas fa-user-check"></i></div>
+                                <div class="info-content">
+                                    <div class="info-label">Conta Ativa</div>
+                                    <div class="form-check form-switch" style="margin: 0; padding: 0;">
+                                        <input class="form-check-input" type="checkbox" id="editAtivo" name="ativo" style="margin: 0;">
+                                        <label class="form-check-label" for="editAtivo" style="margin-left: 0.5rem; font-size: 1rem; font-weight: 500;"></label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="user-info-item" style="border-bottom: none; padding-top: 1rem;">
+                                <div class="info-icon"></div>
+                                <div class="info-content">
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-save me-1"></i>Salvar
+                                        </button>
+                                        <button type="button" class="btn btn-warning btn-sm" onclick="resetarSenha()">
+                                            <i class="fas fa-key me-1"></i>Resetar Senha
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Variável global para verificar se o usuário pode editar
+const podeEditar = {% if perfil.cargo == 'administrador' or perfil.cargo == 'gerente' %}true{% else %}false{% endif %};
+
+function visualizarCadastro(re, id, nome, cargo, ativo) {
+    // Encontrar a linha da tabela com o RE correspondente
+    const rows = document.querySelectorAll('tbody tr');
+    let userData = null;
+    
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length > 0) {
+            const reCell = cells[0].querySelector('.re-number');
+            if (reCell && reCell.textContent.trim() === re) {
+                userData = {
+                    re: re,
+                    nome: cells[1].querySelector('strong').textContent.trim(),
+                    username: cells[1].querySelector('small').textContent.trim(),
+                    cargo: cells[2].querySelector('.badge').textContent.trim(),
+                    status: cells[3].querySelector('span').textContent.trim(),
+                    dataCriacao: cells[4].textContent.trim().replace(/\s+/g, ' '),
+                    ultimoLogin: cells[5].textContent.trim().replace(/\s+/g, ' ')
+                };
+            }
+        }
+    });
+    
+    if (userData) {
+        // Preencher informações do usuário
+        const modalContent = document.getElementById('modalCadastroContent');
+        modalContent.innerHTML = `
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-id-badge text-primary"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">RE (Registro de Empregado)</div>
+                    <div class="info-value">${userData.re}</div>
+                </div>
+            </div>
+            
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-user text-success"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">Nome Completo</div>
+                    <div class="info-value">${userData.nome}</div>
+                </div>
+            </div>
+            
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-at text-info"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">Nome de Usuário</div>
+                    <div class="info-value">${userData.username}</div>
+                </div>
+            </div>
+            
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-briefcase text-warning"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">Cargo</div>
+                    <div class="info-value">${userData.cargo}</div>
+                </div>
+            </div>
+            
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-toggle-on text-success"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">Status da Conta</div>
+                    <div class="info-value">${userData.status}</div>
+                </div>
+            </div>
+            
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-calendar-plus text-secondary"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">Data de Criação</div>
+                    <div class="info-value">${userData.dataCriacao}</div>
+                </div>
+            </div>
+            
+            <div class="user-info-item">
+                <div class="info-icon">
+                    <i class="fas fa-clock text-secondary"></i>
+                </div>
+                <div class="info-content">
+                    <div class="info-label">Último Login</div>
+                    <div class="info-value">${userData.ultimoLogin}</div>
+                </div>
+            </div>
+        `;
+        
+        // Mostrar/ocultar coluna de edição baseado nas permissões
+        const editarUsuarioColumn = document.getElementById('editarUsuarioColumn');
+        if (podeEditar) {
+            editarUsuarioColumn.style.display = 'block';
+            
+            // Preencher campos de edição
+            document.getElementById('editUsuarioId').value = id;
+            document.getElementById('editCargo').value = cargo;
+            document.getElementById('editAtivo').checked = ativo;
+            
+            // Limpar campos de senha
+            document.getElementById('editNovaSenha').value = '';
+            document.getElementById('editConfirmarSenha').value = '';
+        } else {
+            editarUsuarioColumn.style.display = 'none';
+        }
+        
+        // Mostrar o modal
+        const modal = new bootstrap.Modal(document.getElementById('modalVisualizarCadastro'));
+        modal.show();
+    }
+}
+
+// Função para resetar senha
+function resetarSenha() {
+    const usuarioId = document.getElementById('editUsuarioId').value;
+    if (confirm('Tem certeza que deseja resetar a senha deste usuário? Ele será obrigado a criar uma nova senha no próximo login.')) {
+        // Criar formulário para resetar senha
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.style.display = 'none';
+        
+        // CSRF Token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken;
+        form.appendChild(csrfInput);
+        
+        // Ação
+        const acaoInput = document.createElement('input');
+        acaoInput.type = 'hidden';
+        acaoInput.name = 'acao';
+        acaoInput.value = 'force_reset_senha';
+        form.appendChild(acaoInput);
+        
+        // ID do usuário
+        const idInput = document.createElement('input');
+        idInput.type = 'hidden';
+        idInput.name = 'usuario_id';
+        idInput.value = usuarioId;
+        form.appendChild(idInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// Validação do formulário de edição
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formEditarUsuario');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const novaSenha = document.getElementById('editNovaSenha').value;
+            const confirmarSenha = document.getElementById('editConfirmarSenha').value;
+            
+            // Se uma senha foi digitada, verificar se as senhas coincidem
+            if (novaSenha || confirmarSenha) {
+                if (novaSenha !== confirmarSenha) {
+                    e.preventDefault();
+                    alert('As senhas não coincidem. Por favor, verifique e tente novamente.');
+                    return false;
+                }
+                
+                if (novaSenha.length < 6) {
+                    e.preventDefault();
+                    alert('A senha deve ter pelo menos 6 caracteres.');
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+});
+</script>
+{% endblock %}
