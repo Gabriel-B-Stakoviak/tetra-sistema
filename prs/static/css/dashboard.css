@@ -1,0 +1,38 @@
+/* Minimal custom styles for dashboard - Bootstrap handles most styling */
+
+/* Custom card hover effects */
+.card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Ensure icons have proper opacity */
+.opacity-50 {
+    opacity: 0.5 !important;
+}
+
+/* Custom scrollbar for table if needed */
+.table-responsive {
+    max-height: 400px;
+}
+
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}

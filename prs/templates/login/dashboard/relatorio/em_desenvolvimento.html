@@ -1,7 +1,7 @@
 {% extends 'internal-base/base-dash.html' %}
 {% load static %}
 
-{% block title %}Relatório PLIL - Em Desenvolvimento{% endblock %}
+{% block title %}{{ titulo_relatorio }} - Em Desenvolvimento{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,8 +10,8 @@
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title">
-                        <i class="fas fa-flask mr-2"></i>
-                        Relatório PLIL
+                        <i class="fas fa-tools mr-2"></i>
+                        {{ titulo_relatorio }}
                     </h3>
                 </div>
                 <div class="card-body text-center">
@@ -45,4 +45,26 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .alert-info {
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .fa-info-circle {
+        color: #17a2b8;
+    }
+    
+    .card {
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        margin-bottom: 1rem;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+</style>
 {% endblock %}

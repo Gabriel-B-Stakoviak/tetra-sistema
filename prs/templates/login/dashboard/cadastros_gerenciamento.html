@@ -248,7 +248,7 @@
 
 <div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-xl-10 col-lg-11">
+        <div class="col-xl-12 col-lg-11">
             <div class="card">
                 <div class="card-header text-center">
                     <h5>Contas Registradas</h5>
@@ -275,9 +275,7 @@
                                         <span class="re-number">{{ usuario_form.usuario.re }}</span>
                                     </td>
                                     <td>
-                                        <strong>{{ usuario_form.usuario.nome }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ usuario_form.usuario.user.username }}</small>
+                                        <strong>{{ usuario_form.usuario.nome }}{% if usuario_form.usuario.sobrenome %} {{ usuario_form.usuario.sobrenome }}{% endif %}</strong>
                                     </td>
                                     <td>
                                         <span class="badge cargo-{{ usuario_form.usuario.cargo|lower }}">
@@ -300,20 +298,16 @@
                                     </td>
                                     <td>
                                         <small>{{ usuario_form.usuario.data_criacao|date:"d/m/Y" }}</small>
-                                        <br>
-                                        <small class="text-muted">{{ usuario_form.usuario.data_criacao|date:"H:i" }}</small>
                                     </td>
                                     <td>
                                         {% if usuario_form.usuario.user.last_login %}
                                             <small>{{ usuario_form.usuario.user.last_login|date:"d/m/Y" }}</small>
-                                            <br>
-                                            <small class="text-muted">{{ usuario_form.usuario.user.last_login|date:"H:i" }}</small>
                                         {% else %}
                                             <small class="text-muted">Nunca logou</small>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="visualizarCadastro('{{ usuario_form.usuario.re }}', '{{ usuario_form.usuario.id }}', '{{ usuario_form.usuario.nome }}', '{{ usuario_form.usuario.cargo }}', {{ usuario_form.usuario.ativo|yesno:"true,false" }})">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="visualizarCadastro('{{ usuario_form.usuario.re }}', '{{ usuario_form.usuario.id }}', '{{ usuario_form.usuario.nome }}', '{{ usuario_form.usuario.sobrenome }}', '{{ usuario_form.usuario.user.username }}', '{{ usuario_form.usuario.cargo }}', {{ usuario_form.usuario.ativo|yesno:"true,false" }})">
                                             👁 Ver
                                         </button>
                                     </td>
@@ -437,7 +431,7 @@
 // Variável global para verificar se o usuário pode editar
 const podeEditar = {% if perfil.cargo == 'administrador' or perfil.cargo == 'gerente' %}true{% else %}false{% endif %};
 
-function visualizarCadastro(re, id, nome, cargo, ativo) {
+function visualizarCadastro(re, id, nome, sobrenome, username, cargo, ativo) {
     // Encontrar a linha da tabela com o RE correspondente
     const rows = document.querySelectorAll('tbody tr');
     let userData = null;
@@ -447,10 +441,13 @@ function visualizarCadastro(re, id, nome, cargo, ativo) {
         if (cells.length > 0) {
             const reCell = cells[0].querySelector('.re-number');
             if (reCell && reCell.textContent.trim() === re) {
+                // Construir nome completo
+                const nomeCompleto = sobrenome ? `${nome} ${sobrenome}` : nome;
+                
                 userData = {
                     re: re,
-                    nome: cells[1].querySelector('strong').textContent.trim(),
-                    username: cells[1].querySelector('small').textContent.trim(),
+                    nome: nomeCompleto,
+                    username: username,
                     cargo: cells[2].querySelector('.badge').textContent.trim(),
                     status: cells[3].querySelector('span').textContent.trim(),
                     dataCriacao: cells[4].textContent.trim().replace(/\s+/g, ' '),

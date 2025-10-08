@@ -14,13 +14,15 @@ class Perfil(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     re = models.CharField(max_length=24, unique=True)
     nome = models.CharField(max_length=124)
+    sobrenome = models.CharField(max_length=124, blank=True, default='')
     cargo = models.CharField(max_length=14, choices=CARGO_OPCOES, default='operador')
     ativo = models.BooleanField(default=False)  # Conta precisa ser ativada por gerente/admin
     force_password_reset = models.BooleanField(default=False)  # Força reset de senha no próximo login
     data_criacao = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.nome} ({self.get_cargo_display()}) - {'Ativo' if self.ativo else 'Inativo'}"
+        nome_completo = f"{self.nome} {self.sobrenome}".strip()
+        return f"{nome_completo} ({self.get_cargo_display()}) - {'Ativo' if self.ativo else 'Inativo'}"
     
     def pode_ativar_usuarios(self):
         """Verifica se o usuário pode ativar outros usuários"""
@@ -75,6 +77,7 @@ class DiarioBordo(models.Model):
     manutencao_eletrica = models.BooleanField(default=False)
     quebra = models.BooleanField(default=False)
     laminadora_parada = models.BooleanField(default=False)
+    maquina_parada = models.BooleanField(default=False)
     outros = models.BooleanField(default=False)
     
     # Campo de texto para ocorrências
@@ -245,9 +248,99 @@ class CarrosselImagem(models.Model):
         return f"{self.titulo or 'Imagem'} - Ordem {self.ordem}"
     
     def save(self, *args, **kwargs):
-        # Limita a ordem entre 1 e 5
-        if self.ordem > 5:
-            self.ordem = 5
-        elif self.ordem < 1:
-            self.ordem = 1
+        # Garantir que a ordem seja única
+        if not self.pk:  # Novo objeto
+            max_ordem = CarrosselImagem.objects.aggregate(models.Max('ordem'))['ordem__max'] or 0
+            if self.ordem <= max_ordem:
+                self.ordem = max_ordem + 1
         super().save(*args, **kwargs)
+
+# ================================================================================
+# MODELOS PARA DASHBOARD
+# ================================================================================
+
+class ProducaoMensal(models.Model):
+    """Modelo para armazenar dados de produção mensal por turno"""
+    TURNO_CHOICES = [
+        ('1', 'Turno 1'),
+        ('2', 'Turno 2'),
+        ('3', 'Turno 3'),
+    ]
+    
+    mes = models.PositiveIntegerField()  # 1-12
+    ano = models.PositiveIntegerField()
+    turno = models.CharField(max_length=1, choices=TURNO_CHOICES)
+    total_fardo = models.IntegerField(default=0)
+    total_reversao = models.IntegerField(default=0)
+    ultima_atualizacao = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['mes', 'ano', 'turno']
+        ordering = ['ano', 'mes', 'turno']
+        verbose_name = "Produção Mensal"
+        verbose_name_plural = "Produções Mensais"
+    
+    def __str__(self):
+        return f"{self.mes:02d}/{self.ano} - Turno {self.turno}"
+
+class CarregamentoDashboard(models.Model):
+    """Modelo para carregamentos exibidos no dashboard"""
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('concluido', 'Concluído'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    data = models.DateField(auto_now_add=True)
+    empresa = models.ForeignKey('Empresa', on_delete=models.CASCADE)
+    material = models.CharField(max_length=200)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente')
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_conclusao = models.DateTimeField(null=True, blank=True)
+    data_cancelamento = models.DateTimeField(null=True, blank=True)
+    concluido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    cancelado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='carregamentos_cancelados')
+    criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='carregamentos_criados')
+    
+    class Meta:
+        ordering = ['data', 'data_criacao']
+        verbose_name = "Carregamento Dashboard"
+        verbose_name_plural = "Carregamentos Dashboard"
+    
+    def __str__(self):
+        return f"{self.empresa.nome} - {self.material} ({self.data.strftime('%d/%m/%Y')})"
+    
+    def marcar_concluido(self, user):
+        """Marca o carregamento como concluído"""
+        from django.utils import timezone
+        self.status = 'concluido'
+        self.data_conclusao = timezone.now()
+        self.concluido_por = user
+        self.save()
+    
+    def marcar_cancelado(self, user):
+        """Marca o carregamento como cancelado"""
+        from django.utils import timezone
+        self.status = 'cancelado'
+        self.data_cancelamento = timezone.now()
+        self.cancelado_por = user
+        self.save()
+
+# ================================================================================
+class Empresa(models.Model):
+    """Modelo para empresas de carregamento"""
+    nome = models.CharField(max_length=200, unique=True)
+    cnpj = models.CharField(max_length=18, blank=True, null=True)
+    contato = models.CharField(max_length=100, blank=True, null=True)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['nome']
+        verbose_name = "Empresa"
+        verbose_name_plural = "Empresas"
+    
+    def __str__(self):
+        return self.nome

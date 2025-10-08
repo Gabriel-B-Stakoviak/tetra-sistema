@@ -1,0 +1,264 @@
+{% extends 'login/dashboard/relatorio/base_relatorio.html' %}
+
+{% block relatorio_title %}Relatório de Turno{% endblock %}
+{% block relatorio_icon %}fas fa-clock{% endblock %}
+
+{% block filtros_extras %}
+<div class="form-group">
+    <label for="turno">Turno:</label>
+    <select class="form-control" id="turno" name="turno">
+        <option value="">Todos os Turnos</option>
+        <option value="A" {% if request.GET.turno == 'A' %}selected{% endif %}>Turno A</option>
+        <option value="B" {% if request.GET.turno == 'B' %}selected{% endif %}>Turno B</option>
+        <option value="C" {% if request.GET.turno == 'C' %}selected{% endif %}>Turno C</option>
+    </select>
+</div>
+{% endblock %}
+
+{% block relatorio_content %}
+{% if dados_turno %}
+    <!-- Estatísticas em Lista -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Resumo Estatístico</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-clipboard-check text-primary"></i> Total de Fechamentos</span>
+                    <span class="badge bg-primary rounded-pill fs-6">{{ total_fechamentos }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-boxes text-success"></i> Total de Fardos</span>
+                    <span class="badge bg-success rounded-pill fs-6">{{ total_fardos|floatformat:0 }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-undo text-warning"></i> Total de Reversão</span>
+                    <span class="badge bg-warning rounded-pill fs-6">{{ total_reversao|floatformat:0 }}</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-calculator text-info"></i> Média de Fardos/Turno</span>
+                    <span class="badge bg-info rounded-pill fs-6">{{ media_fardos|floatformat:1 }}</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Gráficos Verticais -->
+    <!-- Gráfico de Produção por Turno -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Produção por Turno</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoTurnos" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico de Evolução Diária -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line"></i> Evolução Diária</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoEvolucao" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Dados -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-table"></i> Dados de Fechamento de Turno</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-2" >
+                    <thead class="table-dark">
+                        <tr>
+                            <th scope="col">Data</th>
+                            <th scope="col">Turno</th>
+                            <th scope="col">Responsável</th>
+                            <th scope="col">RE</th>
+                            <th scope="col">Total Fardos</th>
+                            <th scope="col">Reversão</th>
+                            <th scope="col">Eficiência (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for fechamento in dados_turno %}
+                        <tr>
+                            <td>{{ fechamento.data_hora|date:"d/m/Y" }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if fechamento.turno == 'A' %}bg-primary
+                                    {% elif fechamento.turno == 'B' %}bg-success
+                                    {% else %}bg-warning{% endif %}">
+                                    Turno {{ fechamento.turno }}
+                                </span>
+                            </td>
+                            <td>{{ fechamento.nome }}</td>
+                            <td>{{ fechamento.re }}</td>
+                            <td class="text-end">{{ fechamento.total_fardo|floatformat:0 }}</td>
+                            <td class="text-end">{{ fechamento.reversao|floatformat:0 }}</td>
+                            <td class="text-end">
+                                {% if fechamento.total_fardo > 0 %}
+                                    {% widthratio fechamento.total_fardo fechamento.total_fardo|add:fechamento.reversao 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo por Turno -->
+    <div class="row mt-4">
+        {% for turno_info in resumo_turnos %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header 
+                    {% if turno_info.turno == 'A' %}bg-primary
+                    {% elif turno_info.turno == 'B' %}bg-success
+                    {% else %}bg-warning{% endif %} text-white">
+                    <h6 class="mb-0">Turno {{ turno_info.turno }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <h4 class="text-primary">{{ turno_info.total_fardos|floatformat:0 }}</h4>
+                            <small class="text-muted">Fardos</small>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-danger">{{ turno_info.total_reversao|floatformat:0 }}</h4>
+                            <small class="text-muted">Reversão</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <strong>Eficiência: 
+                            {% if turno_info.total_fardos > 0 %}
+                                {% widthratio turno_info.total_fardos turno_info.total_fardos|add:turno_info.total_reversao 100 %}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+{% else %}
+    <div class="no-data">
+        <i class="fas fa-clock fa-3x mb-3"></i>
+        <p>Nenhum dado de fechamento de turno encontrado para o período selecionado.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if dados_turno %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Dados para os gráficos
+    const dadosTurnos = {
+        'A': {{ resumo_turnos.0.total_fardos|default:0 }},
+        'B': {{ resumo_turnos.1.total_fardos|default:0 }},
+        'C': {{ resumo_turnos.2.total_fardos|default:0 }}
+    };
+
+    // Gráfico de Turnos
+    const ctxTurnos = document.getElementById('graficoTurnos').getContext('2d');
+    new Chart(ctxTurnos, {
+        type: 'bar',
+        data: {
+            labels: ['Turno A', 'Turno B', 'Turno C'],
+            datasets: [{
+                label: 'Fardos Produzidos',
+                data: [dadosTurnos.A, dadosTurnos.B, dadosTurnos.C],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(255, 206, 86, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de Evolução (dados por data)
+    const ctxEvolucao = document.getElementById('graficoEvolucao').getContext('2d');
+    const datasEvolucao = [
+        {% for fechamento in dados_turno %}
+        '{{ fechamento.data_hora|date:"d/m" }}',
+        {% endfor %}
+    ];
+    const fardosEvolucao = [
+        {% for fechamento in dados_turno %}
+        {{ fechamento.total_fardo }},
+        {% endfor %}
+    ];
+
+    new Chart(ctxEvolucao, {
+        type: 'line',
+        data: {
+            labels: datasEvolucao,
+            datasets: [{
+                label: 'Fardos por Dia',
+                data: fardosEvolucao,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

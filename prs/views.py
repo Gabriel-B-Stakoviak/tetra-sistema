@@ -4,13 +4,22 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView
-from .forms import RegistroForm, FechamentoTurnoForm, DiarioBordoForm, AguaCloroForm, EditarPerfilForm, ForcePasswordResetForm
+from .forms import RegistroForm, FechamentoTurnoForm, DiarioBordoForm, AguaCloroForm, EditarPerfilForm, ForcePasswordResetForm, CarregamentoForm, EmpresaForm
 from django.shortcuts import get_list_or_404
 from .models import *
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from django.contrib import messages
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.db.models import Sum, Count, Avg, Q, Max
+import io
+import json
+import xlsxwriter
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+import json
 
 # Create your views here.
 def home(request):
@@ -123,7 +132,6 @@ def force_password_reset(request):
             perfil.force_password_reset = False
             perfil.save()
             
-            messages.success(request, 'Senha redefinida com sucesso!')
             return redirect('dashboard')
             
     except Perfil.DoesNotExist:
@@ -143,7 +151,91 @@ def dashboard(request):
     except Perfil.DoesNotExist:
         # Se o usuário não tem perfil, redireciona para criar um
         return redirect('register')
-    return render(request, 'login/dashboard/dashboard.html', {'perfil': perfil})
+    
+    # Buscar totais de fardo por turno
+    turno1_total = FechamentoTurno.objects.filter(turno='A').aggregate(
+        total=Sum('total_fardo')
+    )['total'] or 0
+    
+    turno2_total = FechamentoTurno.objects.filter(turno='B').aggregate(
+        total=Sum('total_fardo')
+    )['total'] or 0
+    
+    turno3_total = FechamentoTurno.objects.filter(turno='C').aggregate(
+        total=Sum('total_fardo')
+    )['total'] or 0
+    
+    # Buscar totais de reversão por turno
+    turno1_reversao = FechamentoTurno.objects.filter(turno='A').aggregate(
+        total=Sum('reversao')
+    )['total'] or 0
+    
+    turno2_reversao = FechamentoTurno.objects.filter(turno='B').aggregate(
+        total=Sum('reversao')
+    )['total'] or 0
+    
+    turno3_reversao = FechamentoTurno.objects.filter(turno='C').aggregate(
+        total=Sum('reversao')
+    )['total'] or 0
+ 
+    # Calcular totais gerais (soma de todos os turnos)
+    total_geral_fardos = turno1_total + turno2_total + turno3_total
+    total_geral_reversao = turno1_reversao + turno2_reversao + turno3_reversao
+    
+    # Buscar carregamentos recentes (últimos 10)
+    carregamentos = CarregamentoDashboard.objects.select_related('empresa', 'criado_por').order_by('-data_criacao')[:10]
+    
+    context = {
+        'perfil': perfil,
+        'turno1_total': turno1_total,
+        'turno2_total': turno2_total,
+        'turno3_total': turno3_total,
+        'turno1_reversao': turno1_reversao,
+        'turno2_reversao': turno2_reversao,
+        'turno3_reversao': turno3_reversao,
+        'total_geral_fardos': total_geral_fardos,
+        'total_geral_reversao': total_geral_reversao,
+        'carregamentos': carregamentos,
+    }
+    
+    return render(request, 'login/dashboard/dashboard.html', context)
+
+@login_required
+def marcar_carregamento_concluido(request, carregamento_id):
+    """View para marcar carregamento como concluído via AJAX"""
+    if request.method == 'POST':
+        try:
+            carregamento = get_object_or_404(CarregamentoDashboard, id=carregamento_id)
+            carregamento.marcar_concluido(request.user)
+            return JsonResponse({
+                'success': True,
+                'message': 'Carregamento marcado como concluído!'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao marcar carregamento: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método não permitido'})
+
+def marcar_carregamento_cancelado(request, carregamento_id):
+    """View para marcar carregamento como cancelado via AJAX"""
+    if request.method == 'POST':
+        try:
+            carregamento = get_object_or_404(CarregamentoDashboard, id=carregamento_id)
+            carregamento.marcar_cancelado(request.user)
+            return JsonResponse({
+                'success': True,
+                'message': 'Carregamento cancelado com sucesso!'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f'Erro ao cancelar carregamento: {str(e)}'
+            })
+    
+    return JsonResponse({'success': False, 'message': 'Método não permitido'})
 
 ######################################################################
 def detectar_turno_atual():
@@ -185,7 +277,6 @@ def fechamento_turno(request):
             fechamento.turno = turno_atual
             fechamento.save()
             
-            messages.success(request, f'Fechamento do Turno {turno_atual} realizado com sucesso!')
             return redirect('dashboard')
     else:
         form = FechamentoTurnoForm()
@@ -202,7 +293,46 @@ def fechamento_turno(request):
 @login_required
 def carregamento(request):
     perfil = request.user.perfil
-    return render(request, 'login/dashboard/carregamento.html', {'perfil': perfil})
+    
+    # Processar formulário de carregamento
+    if request.method == 'POST':
+        form_carregamento = CarregamentoForm(request.POST)
+        if form_carregamento.is_valid():
+            nome_empresa = form_carregamento.cleaned_data['empresa'].strip()
+            material = form_carregamento.cleaned_data['material']
+            
+            # Buscar ou criar a empresa
+            empresa, created = Empresa.objects.get_or_create(
+                nome__iexact=nome_empresa,  # Busca case-insensitive
+                defaults={
+                    'nome': nome_empresa,
+                    'criado_por': request.user,
+                    'ativo': True
+                }
+            )
+            
+            # Criar o carregamento
+            carregamento = CarregamentoDashboard.objects.create(
+                empresa=empresa,
+                material=material,
+                criado_por=request.user
+            )
+            
+            return redirect('carregamento')
+    
+    # Formulário vazio para GET
+    form_carregamento = CarregamentoForm()
+    
+    # Buscar registros de carregamento
+    carregamentos = CarregamentoDashboard.objects.all().order_by('-data_criacao')
+    
+    context = {
+        'perfil': perfil,
+        'form_carregamento': form_carregamento,
+        'carregamentos': carregamentos,
+    }
+    
+    return render(request, 'login/dashboard/carregamento.html', context)
 
 @login_required
 def diario_bordo_lista(request):
@@ -232,7 +362,6 @@ def diarioBordo(request):
             entrada.turno = turno_atual
             entrada.inicio = agora_local
             entrada.save()
-            messages.success(request, 'Entrada do Diário de Bordo registrada com sucesso!')
             return redirect('diario-bordo-lista')
     else:
         form = DiarioBordoForm()
@@ -252,12 +381,14 @@ def diarioBordo(request):
 def finalizar_diario_bordo(request, entrada_id):
     if request.method == 'POST':
         entrada = get_object_or_404(DiarioBordo, id=entrada_id)
-        entrada.fim = timezone.now()
+        agora_utc = timezone.now()
+        agora_local = timezone.localtime(agora_utc)
+        entrada.fim = agora_utc  # Salva em UTC no banco
         entrada.save()
         return JsonResponse({
             'success': True,
-            'fim': entrada.fim.strftime('%d/%m/%Y %H:%M'),
-            'fim_formatado': entrada.fim.strftime('%H:%M')
+            'fim': agora_local.strftime('%d/%m/%Y %H:%M'),  # Retorna em horário local
+            'fim_formatado': agora_local.strftime('%H:%M')  # Retorna em horário local
         })
     return JsonResponse({'success': False})
 
@@ -275,7 +406,6 @@ def aguaExtrusoura(request):
             agua_cloro.turno = detectar_turno_atual()
             
             agua_cloro.save()
-            messages.success(request, 'Registro de água da extrusora salvo com sucesso!')
             return redirect('agua-extrusoura')
     else:
         form = AguaCloroForm()
@@ -319,33 +449,325 @@ def etiqueta(request):
 
 @login_required
 def relatorioTurno(request):
+    from datetime import datetime, timedelta
+    from django.db.models import Count, Avg, Q
+    
     perfil = request.user.perfil
-    return render(request, 'login/dashboard/relatorio/relatorio_turno.html', {'perfil': perfil})
+    
+    # Filtros de data
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    turno_filtro = request.GET.get('turno')
+    
+    # Definir período padrão (últimos 30 dias)
+    if not data_inicio:
+        data_inicio = (timezone.now() - timedelta(days=30)).date()
+    else:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    
+    if not data_fim:
+        data_fim = timezone.now().date()
+    else:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    # Buscar dados de fechamento de turno
+    fechamentos = FechamentoTurno.objects.filter(
+        data_hora__date__range=[data_inicio, data_fim]
+    )
+    
+    if turno_filtro:
+        fechamentos = fechamentos.filter(turno=turno_filtro)
+    
+    # Estatísticas
+    total_fechamentos = fechamentos.count()
+    total_fardos = fechamentos.aggregate(Sum('total_fardo'))['total_fardo__sum'] or 0
+    total_reversao = fechamentos.aggregate(Sum('reversao'))['reversao__sum'] or 0
+    media_fardos = fechamentos.aggregate(Avg('total_fardo'))['total_fardo__avg'] or 0
+    
+    # Dados para gráficos
+    fechamentos_por_turno = fechamentos.values('turno').annotate(
+        total=Count('id'),
+        fardos=Sum('total_fardo')
+    ).order_by('turno')
+    
+    # Evolução diária
+    evolucao_diaria = fechamentos.extra(
+        select={'dia': 'date(data_hora)'}
+    ).values('dia').annotate(
+        total_fardos=Sum('total_fardo'),
+        total_fechamentos=Count('id')
+    ).order_by('dia')
+    
+    # Resumo por turno
+    resumo_turnos = []
+    for turno in ['A', 'B', 'C']:
+        turno_fechamentos = fechamentos.filter(turno=turno)
+        total_turno = turno_fechamentos.aggregate(Sum('total_fardo'))['total_fardo__sum'] or 0
+        reversao_turno = turno_fechamentos.aggregate(Sum('reversao'))['reversao__sum'] or 0
+        
+        resumo_turnos.append({
+            'turno': turno,
+            'total_fardos': total_turno,
+            'total_reversao': reversao_turno
+        })
+    
+    context = {
+        'perfil': perfil,
+        'dados_turno': fechamentos.order_by('-data_hora'),
+        'total_fechamentos': total_fechamentos,
+        'total_fardos': total_fardos,
+        'total_reversao': total_reversao,
+        'media_fardos': round(media_fardos, 2),
+        'fechamentos_por_turno': fechamentos_por_turno,
+        'evolucao_diaria': evolucao_diaria,
+        'resumo_turnos': resumo_turnos,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'turno_filtro': turno_filtro,
+    }
+    
+    return render(request, 'login/dashboard/relatorio/relatorio_turno.html', context)
 
 @login_required
 def relatorioExtrusoura(request):
+    from datetime import datetime, timedelta
+    from django.db.models import Count, Avg, Q
+    
     perfil = request.user.perfil
-    return render(request, 'login/dashboard/relatorio/relatorio_extrusoura.html', {'perfil': perfil})
+    
+    # Filtros
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    turno_filtro = request.GET.get('turno')
+    status_filtro = request.GET.get('status')
+    
+    # Definir período padrão (últimos 30 dias)
+    if not data_inicio:
+        data_inicio = (timezone.now() - timedelta(days=30)).date()
+    else:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    
+    if not data_fim:
+        data_fim = timezone.now().date()
+    else:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    # Buscar dados do diário de bordo
+    registros = DiarioBordo.objects.filter(
+        data_criacao__date__range=[data_inicio, data_fim]
+    )
+    
+    if turno_filtro:
+        registros = registros.filter(turno=turno_filtro)
+    
+    if status_filtro:
+        if status_filtro == 'finalizado':
+            registros = registros.filter(fim__isnull=False)
+        elif status_filtro == 'em_andamento':
+            registros = registros.filter(fim__isnull=True)
+    
+    # Estatísticas
+    total_registros = registros.count()
+    registros_finalizados = registros.filter(fim__isnull=False).count()
+    registros_em_andamento = registros.filter(fim__isnull=True).count()
+    
+    # Calcular tempos médios separados
+    registros_com_tempo = registros.filter(fim__isnull=False, inicio__isnull=False)
+    
+    # Tempo médio para registros COM máquina parada
+    registros_maquina_parada_tempo = registros_com_tempo.filter(maquina_parada=True)
+    tempo_medio_maquina_parada = 0
+    if registros_maquina_parada_tempo.exists():
+        tempos_parada = []
+        for registro in registros_maquina_parada_tempo:
+            if registro.inicio and registro.fim:
+                tempo_minutos = (registro.fim - registro.inicio).total_seconds() / 60
+                tempos_parada.append(tempo_minutos)
+        if tempos_parada:
+            tempo_medio_maquina_parada = sum(tempos_parada) / len(tempos_parada)
+    
+    # Tempo médio para registros SEM máquina parada
+    registros_sem_maquina_parada_tempo = registros_com_tempo.filter(maquina_parada=False)
+    tempo_medio_sem_maquina_parada = 0
+    if registros_sem_maquina_parada_tempo.exists():
+        tempos_normal = []
+        for registro in registros_sem_maquina_parada_tempo:
+            if registro.inicio and registro.fim:
+                tempo_minutos = (registro.fim - registro.inicio).total_seconds() / 60
+                tempos_normal.append(tempo_minutos)
+        if tempos_normal:
+            tempo_medio_sem_maquina_parada = sum(tempos_normal) / len(tempos_normal)
+    
+    # Tempo médio geral (para compatibilidade)
+    tempo_medio = 0
+    if registros_com_tempo.exists():
+        tempos = []
+        for registro in registros_com_tempo:
+            if registro.inicio and registro.fim:
+                tempo_minutos = (registro.fim - registro.inicio).total_seconds() / 60
+                tempos.append(tempo_minutos)
+        if tempos:
+            tempo_medio = sum(tempos) / len(tempos)
+    
+    # Dados para gráficos
+    registros_por_turno = registros.values('turno').annotate(
+        total=Count('id'),
+        finalizados=Count('id', filter=Q(fim__isnull=False))
+    ).order_by('turno')
+    
+    # Estatísticas de máquina parada
+    registros_maquina_parada = registros.filter(maquina_parada=True)
+    total_maquina_parada = registros_maquina_parada.count()
+    
+    # Taxa de conclusão (% de registros finalizados vs total)
+    taxa_conclusao = 0
+    if total_registros > 0:
+        taxa_conclusao = (registros_finalizados / total_registros) * 100
+    
+    # Aproveitamento da máquina (% tempo funcionando vs tempo total)
+    aproveitamento_maquina = 0
+    if total_registros > 0:
+        registros_funcionando = total_registros - total_maquina_parada
+        aproveitamento_maquina = (registros_funcionando / total_registros) * 100
+    
+    # Resumo por turnos incluindo máquina parada
+    resumo_turnos = []
+    for turno in ['A', 'B', 'C']:
+        registros_turno = registros.filter(turno=turno)
+        finalizados_turno = registros_turno.filter(fim__isnull=False).count()
+        maquina_parada_turno = registros_turno.filter(maquina_parada=True).count()
+        
+        resumo_turnos.append({
+            'turno': turno,
+            'total_registros': registros_turno.count(),
+            'finalizados': finalizados_turno,
+            'maquina_parada': maquina_parada_turno
+        })
+    
+    context = {
+        'perfil': perfil,
+        'dados_extrusora': registros.order_by('-data_criacao'),
+        'total_registros': total_registros,
+        'registros_finalizados': registros_finalizados,
+        'registros_em_andamento': registros_em_andamento,
+        'tempo_medio': round(tempo_medio, 2),
+        'tempo_medio_maquina_parada': round(tempo_medio_maquina_parada / 60, 2),  # Converter para horas
+        'tempo_medio_sem_maquina_parada': round(tempo_medio_sem_maquina_parada / 60, 2),  # Converter para horas
+        'registros_por_turno': registros_por_turno,
+        'registros_em_andamento_detalhes': registros.filter(fim__isnull=True),
+        'total_maquina_parada': total_maquina_parada,
+        'resumo_turnos': resumo_turnos,
+        'taxa_conclusao': round(taxa_conclusao, 1),
+        'aproveitamento_maquina': round(aproveitamento_maquina, 1),
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'turno_filtro': turno_filtro,
+        'status_filtro': status_filtro,
+    }
+    
+    return render(request, 'login/dashboard/relatorio/relatorio_extrusoura.html', context)
 
 @login_required
 def relatorioCarregamento(request):
+    from datetime import datetime, timedelta
+    from django.db.models import Count, Q
+    
     perfil = request.user.perfil
-    return render(request, 'login/dashboard/relatorio/relatorio_carregamento.html', {'perfil': perfil})
+    
+    # Filtros
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    empresa_filtro = request.GET.get('empresa')
+    status_filtro = request.GET.get('status')
+    
+    # Definir período padrão (últimos 30 dias)
+    if not data_inicio:
+        data_inicio = (timezone.now() - timedelta(days=30)).date()
+    else:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    
+    if not data_fim:
+        data_fim = timezone.now().date()
+    else:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    # Buscar dados de carregamento
+    carregamentos = CarregamentoDashboard.objects.filter(
+        data_criacao__date__range=[data_inicio, data_fim]
+    )
+    
+    if empresa_filtro:
+        carregamentos = carregamentos.filter(empresa_id=empresa_filtro)
+    
+    if status_filtro:
+        if status_filtro == 'concluido':
+            carregamentos = carregamentos.filter(status='concluido')
+        elif status_filtro == 'pendente':
+            carregamentos = carregamentos.filter(status='pendente')
+        elif status_filtro == 'cancelado':
+            carregamentos = carregamentos.filter(status='cancelado')
+    
+    # Estatísticas
+    total_carregamentos = carregamentos.count()
+    carregamentos_concluidos = carregamentos.filter(status='concluido').count()
+    carregamentos_pendentes = carregamentos.filter(status='pendente').count()
+    carregamentos_cancelados = carregamentos.filter(status='cancelado').count()
+    
+    # Empresas únicas
+    empresas = Empresa.objects.all()
+    total_empresas = carregamentos.values('empresa').distinct().count()
+    
+    # Resumo por empresa
+    resumo_empresas = carregamentos.values('empresa__nome').annotate(
+        total=Count('id'),
+        concluidos=Count('id', filter=Q(status='concluido')),
+        pendentes=Count('id', filter=Q(status='pendente')),
+        cancelados=Count('id', filter=Q(status='cancelado')),
+        ultimo_carregamento=Max('data_criacao')
+    ).order_by('-total')
+    
+    # Carregamentos pendentes em destaque
+    carregamentos_pendentes_detalhes = carregamentos.filter(status='pendente').order_by('data_criacao')[:6]
+    
+    context = {
+        'perfil': perfil,
+        'dados_carregamento': carregamentos.order_by('-data_criacao'),
+        'total_carregamentos': total_carregamentos,
+        'carregamentos_concluidos': carregamentos_concluidos,
+        'carregamentos_pendentes': carregamentos_pendentes,
+        'carregamentos_cancelados': carregamentos_cancelados,
+        'total_empresas': total_empresas,
+        'empresas': empresas,
+        'resumo_empresas': resumo_empresas,
+        'carregamentos_pendentes_detalhes': carregamentos_pendentes_detalhes,
+        'data_inicio': data_inicio,
+        'data_fim': data_fim,
+        'empresa_filtro': empresa_filtro,
+        'status_filtro': status_filtro,
+    }
+    
+    return render(request, 'login/dashboard/relatorio/relatorio_carregamento.html', context)
 
 @login_required
 def relatorioPlil(request):
-    perfil = request.user.perfil
-    return render(request, 'login/dashboard/relatorio/relatorio_plil.html', {'perfil': perfil})
+    context = {
+        'titulo_relatorio': 'Relatório PLIL'
+    }
+    return render(request, 'login/dashboard/relatorio/em_desenvolvimento.html', context)
 
 @login_required
 def relatorioEtiquetas(request):
-    perfil = request.user.perfil
-    return render(request, 'login/dashboard/relatorio/relatorio_etiqueta.html', {'perfil': perfil})
+    context = {
+        'titulo_relatorio': 'Relatório de Etiquetas'
+    }
+    return render(request, 'login/dashboard/relatorio/em_desenvolvimento.html', context)
 
 @login_required
 def relatorioGeral(request):
-    perfil = request.user.perfil
-    return render(request, 'login/dashboard/relatorio/relatorio_geral.html', {'perfil': perfil})
+    context = {
+        'titulo_relatorio': 'Relatório Geral'
+    }
+    return render(request, 'login/dashboard/relatorio/em_desenvolvimento.html', context)
 
 @login_required
 def conteudoPrincipal(request):
@@ -367,7 +789,6 @@ def conteudoPrincipal(request):
                 imagem.ativo = not imagem.ativo
                 imagem.save()
                 status = 'ativada' if imagem.ativo else 'desativada'
-                messages.success(request, f'Imagem {status} com sucesso!')
             except CarrosselImagem.DoesNotExist:
                 messages.error(request, 'Imagem não encontrada.')
                 
@@ -377,7 +798,6 @@ def conteudoPrincipal(request):
             try:
                 imagem = CarrosselImagem.objects.get(id=imagem_id)
                 imagem.delete()
-                messages.success(request, 'Imagem excluída com sucesso!')
             except CarrosselImagem.DoesNotExist:
                 messages.error(request, 'Imagem não encontrada.')
                 
@@ -405,7 +825,6 @@ def conteudoPrincipal(request):
                                 ordem=int(ordem),
                                 criado_por=request.user
                             )
-                            messages.success(request, 'Imagem adicionada com sucesso!')
                         except Exception as e:
                             messages.error(request, f'Erro ao adicionar imagem: {str(e)}')
             else:
@@ -452,7 +871,6 @@ def cadastrosGerenciamento(request):
                 form = EditarPerfilForm(request.POST, instance=perfil_editado, user_perfil=perfil)
                 if form.is_valid():
                     form.save()
-                    messages.success(request, f'Perfil de {perfil_editado.nome} atualizado com sucesso!')
                 else:
                     messages.error(request, 'Erro ao atualizar perfil. Verifique os dados.')
             except Exception as e:
@@ -473,7 +891,6 @@ def cadastrosGerenciamento(request):
                 perfil_editado = get_object_or_404(Perfil, id=usuario_id)
                 perfil_editado.force_password_reset = True
                 perfil_editado.save()
-                messages.success(request, f'Reset de senha forçado para {perfil_editado.nome}. O usuário deverá definir uma nova senha no próximo login.')
             except Exception as e:
                 messages.error(request, f'Erro ao forçar reset de senha: {str(e)}')
         
@@ -488,7 +905,6 @@ def cadastrosGerenciamento(request):
                 perfil_editado.ativo = not perfil_editado.ativo
                 perfil_editado.save()
                 status = 'ativado' if perfil_editado.ativo else 'desativado'
-                messages.success(request, f'Usuário {perfil_editado.nome} {status} com sucesso!')
             except Exception as e:
                 messages.error(request, f'Erro ao alterar status: {str(e)}')
         
@@ -526,11 +942,8 @@ def cadastrosGerenciamento(request):
                     user = perfil_editado.user
                     user.set_password(nova_senha)
                     user.save()
-                    
-                    messages.success(request, f'Senha de {perfil_editado.nome} alterada com sucesso!')
                 
                 perfil_editado.save()
-                messages.success(request, f'Dados de {perfil_editado.nome} atualizados com sucesso!')
                 
             except Exception as e:
                 messages.error(request, f'Erro ao editar usuário: {str(e)}')
@@ -567,3 +980,372 @@ def configuracao(request):
 def logout_usuario(request):
     logout(request)
     return redirect('home')
+
+# Funções de Exportação
+@login_required
+def exportar_relatorio_excel(request, tipo_relatorio):
+    """Exporta relatórios para Excel"""
+    
+    # Criar workbook em memória
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+    
+    # Formatos
+    header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#4472C4',
+        'font_color': 'white',
+        'border': 1
+    })
+    
+    data_format = workbook.add_format({
+        'border': 1,
+        'align': 'center'
+    })
+    
+    # Obter dados baseado no tipo de relatório
+    if tipo_relatorio == 'turno':
+        dados = obter_dados_turno_excel(request)
+        worksheet = workbook.add_worksheet('Relatório de Turnos')
+        
+        # Cabeçalhos
+        headers = ['Data', 'Turno', 'Responsável', 'RE', 'Total Fardos', 'Retrabalho', 'Eficiência (%)', 'Observações']
+        for col, header in enumerate(headers):
+            worksheet.write(0, col, header, header_format)
+        
+        # Dados
+        for row, item in enumerate(dados, 1):
+            worksheet.write(row, 0, item.get('data', ''), data_format)
+            worksheet.write(row, 1, item.get('turno', ''), data_format)
+            worksheet.write(row, 2, item.get('responsavel', ''), data_format)
+            worksheet.write(row, 3, item.get('re', ''), data_format)
+            worksheet.write(row, 4, item.get('total_fardos', 0), data_format)
+            worksheet.write(row, 5, item.get('retrabalho', 0), data_format)
+            worksheet.write(row, 6, item.get('eficiencia', 0), data_format)
+            worksheet.write(row, 7, item.get('observacoes', ''), data_format)
+    
+    elif tipo_relatorio == 'extrusora':
+        dados = obter_dados_extrusora_excel(request)
+        worksheet = workbook.add_worksheet('Relatório de Extrusora')
+        
+        headers = ['Data', 'Turno', 'Responsável', 'Início', 'Fim', 'Duração', 'Status', 'Observações']
+        for col, header in enumerate(headers):
+            worksheet.write(0, col, header, header_format)
+        
+        for row, item in enumerate(dados, 1):
+            worksheet.write(row, 0, item.get('data', ''), data_format)
+            worksheet.write(row, 1, item.get('turno', ''), data_format)
+            worksheet.write(row, 2, item.get('responsavel', ''), data_format)
+            worksheet.write(row, 3, item.get('inicio', ''), data_format)
+            worksheet.write(row, 4, item.get('fim', ''), data_format)
+            worksheet.write(row, 5, item.get('duracao', ''), data_format)
+            worksheet.write(row, 6, item.get('status', ''), data_format)
+            worksheet.write(row, 7, item.get('observacoes', ''), data_format)
+    
+    elif tipo_relatorio == 'carregamento':
+        dados = obter_dados_carregamento_excel(request)
+        worksheet = workbook.add_worksheet('Relatório de Carregamento')
+        
+        headers = ['Data', 'Empresa', 'Produto', 'Quantidade', 'Status', 'Responsável', 'Observações']
+        for col, header in enumerate(headers):
+            worksheet.write(0, col, header, header_format)
+        
+        for row, item in enumerate(dados, 1):
+            worksheet.write(row, 0, item.get('data', ''), data_format)
+            worksheet.write(row, 1, item.get('empresa', ''), data_format)
+            worksheet.write(row, 2, item.get('produto', ''), data_format)
+            worksheet.write(row, 3, item.get('quantidade', 0), data_format)
+            worksheet.write(row, 4, item.get('status', ''), data_format)
+            worksheet.write(row, 5, item.get('responsavel', ''), data_format)
+            worksheet.write(row, 6, item.get('observacoes', ''), data_format)
+    
+
+    
+    # Ajustar largura das colunas
+    worksheet.set_column('A:H', 15)
+    
+    workbook.close()
+    output.seek(0)
+    
+    # Preparar resposta
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="relatorio_{tipo_relatorio}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.xlsx"'
+    
+    return response
+
+@login_required
+def exportar_relatorio_pdf(request, tipo_relatorio):
+    """Exporta relatórios para PDF"""
+    
+    # Criar buffer em memória
+    buffer = io.BytesIO()
+    
+    # Criar documento PDF
+    doc = SimpleDocTemplate(buffer, pagesize=A4)
+    elements = []
+    
+    # Estilos
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=30,
+        alignment=1  # Centralizado
+    )
+    
+    # Título
+    titulo_map = {
+        'turno': 'Relatório de Turnos',
+        'extrusora': 'Relatório de Extrusora',
+        'carregamento': 'Relatório de Carregamento',
+        'plil': 'Relatório PLIL',
+        'etiquetas': 'Relatório de Etiquetas',
+        'geral': 'Relatório Geral'
+    }
+    
+    titulo = Paragraph(titulo_map.get(tipo_relatorio, 'Relatório'), title_style)
+    elements.append(titulo)
+    elements.append(Spacer(1, 12))
+    
+    # Data de geração
+    data_geracao = Paragraph(f"Gerado em: {timezone.now().strftime('%d/%m/%Y %H:%M:%S')}", styles['Normal'])
+    elements.append(data_geracao)
+    elements.append(Spacer(1, 20))
+    
+    # Obter dados e criar tabela
+    if tipo_relatorio == 'turno':
+        dados = obter_dados_turno_pdf(request)
+        headers = ['Data', 'Turno', 'Responsável', 'Total Fardos', 'Retrabalho', 'Eficiência (%)']
+        table_data = [headers]
+        
+        for item in dados:
+            table_data.append([
+                item.get('data', ''),
+                item.get('turno', ''),
+                item.get('responsavel', ''),
+                str(item.get('total_fardos', 0)),
+                str(item.get('retrabalho', 0)),
+                f"{item.get('eficiencia', 0)}%"
+            ])
+    
+    elif tipo_relatorio == 'extrusora':
+        dados = obter_dados_extrusora_pdf(request)
+        headers = ['Data', 'Turno', 'Responsável', 'Duração', 'Status']
+        table_data = [headers]
+        
+        for item in dados:
+            table_data.append([
+                item.get('data', ''),
+                item.get('turno', ''),
+                item.get('responsavel', ''),
+                item.get('duracao', ''),
+                item.get('status', '')
+            ])
+    
+    elif tipo_relatorio == 'carregamento':
+        dados = obter_dados_carregamento_pdf(request)
+        headers = ['Data', 'Empresa', 'Produto', 'Quantidade', 'Status']
+        table_data = [headers]
+        
+        for item in dados:
+            table_data.append([
+                item.get('data', ''),
+                item.get('empresa', ''),
+                item.get('produto', ''),
+                str(item.get('quantidade', 0)),
+                item.get('status', '')
+            ])
+    
+
+    
+    # Criar e estilizar tabela
+    table = Table(table_data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    elements.append(table)
+    
+    # Construir PDF
+    doc.build(elements)
+    
+    # Preparar resposta
+    buffer.seek(0)
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="relatorio_{tipo_relatorio}_{timezone.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+    
+    return response
+
+# Funções auxiliares para obter dados
+def obter_dados_turno_excel(request):
+    """Obtém dados do relatório de turno para Excel"""
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    turno_filtro = request.GET.get('turno', '')
+    
+    if not data_inicio:
+        data_inicio = timezone.now().date() - timedelta(days=30)
+    else:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    
+    if not data_fim:
+        data_fim = timezone.now().date()
+    else:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    fechamentos = FechamentoTurno.objects.filter(
+        data_hora__date__range=[data_inicio, data_fim]
+    )
+    
+    if turno_filtro:
+        fechamentos = fechamentos.filter(turno=turno_filtro)
+    
+    dados = []
+    for fechamento in fechamentos:
+        eficiencia = round((fechamento.total_fardo / (fechamento.total_fardo + fechamento.reversao) * 100) if (fechamento.total_fardo + fechamento.reversao) > 0 else 0, 1)
+        dados.append({
+            'data': fechamento.data_hora.strftime('%d/%m/%Y'),
+            'turno': fechamento.turno,
+            'responsavel': fechamento.nome,
+            're': fechamento.re,
+            'total_fardos': fechamento.total_fardo,
+            'reversao': fechamento.reversao,
+            'eficiencia': eficiencia,
+            'observacoes': fechamento.observacao or ''
+        })
+    
+    return dados
+
+def obter_dados_turno_pdf(request):
+    """Obtém dados do relatório de turno para PDF"""
+    return obter_dados_turno_excel(request)
+
+def obter_dados_extrusora_excel(request):
+    """Obtém dados do relatório de extrusora para Excel"""
+    from datetime import datetime, timedelta
+    
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    turno_filtro = request.GET.get('turno')
+    status_filtro = request.GET.get('status')
+    
+    if not data_inicio:
+        data_inicio = timezone.now().date() - timedelta(days=30)
+    else:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    
+    if not data_fim:
+        data_fim = timezone.now().date()
+    else:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    # Buscar dados do diário de bordo (mesmo modelo usado no relatório)
+    registros = DiarioBordo.objects.filter(
+        data_criacao__date__range=[data_inicio, data_fim]
+    )
+    
+    if turno_filtro:
+        registros = registros.filter(turno=turno_filtro)
+    
+    if status_filtro:
+        if status_filtro == 'finalizado':
+            registros = registros.filter(fim__isnull=False)
+        elif status_filtro == 'maquina_parada':
+            registros = registros.filter(maquina_parada=True)
+    
+    dados = []
+    for registro in registros:
+        duracao = ''
+        status = ''
+        
+        if registro.fim and registro.inicio:
+            delta = registro.fim - registro.inicio
+            horas = delta.total_seconds() // 3600
+            minutos = (delta.total_seconds() % 3600) // 60
+            duracao = f"{int(horas)}h {int(minutos)}m"
+        
+        # Determinar status
+        if registro.maquina_parada:
+            status = 'Máquina Parada'
+        elif registro.fim:
+            status = 'Finalizado'
+        else:
+            status = 'Em Andamento'
+        
+        dados.append({
+            'data': registro.data_criacao.strftime('%d/%m/%Y'),
+            'turno': registro.turno,
+            'responsavel': registro.re,
+            'inicio': registro.inicio.strftime('%H:%M') if registro.inicio else '',
+            'fim': registro.fim.strftime('%H:%M') if registro.fim else '',
+            'duracao': duracao,
+            'status': status,
+            'observacoes': registro.ocorrencias_turno or ''
+        })
+    
+    return dados
+
+def obter_dados_extrusora_pdf(request):
+    """Obtém dados do relatório de extrusora para PDF"""
+    return obter_dados_extrusora_excel(request)
+
+def obter_dados_carregamento_excel(request):
+    """Obtém dados do relatório de carregamento para Excel"""
+    data_inicio = request.GET.get('data_inicio')
+    data_fim = request.GET.get('data_fim')
+    empresa_filtro = request.GET.get('empresa')
+    status_filtro = request.GET.get('status')
+    
+    if not data_inicio:
+        data_inicio = timezone.now().date() - timedelta(days=30)
+    else:
+        data_inicio = datetime.strptime(data_inicio, '%Y-%m-%d').date()
+    
+    if not data_fim:
+        data_fim = timezone.now().date()
+    else:
+        data_fim = datetime.strptime(data_fim, '%Y-%m-%d').date()
+    
+    # Usar CarregamentoDashboard que é o modelo correto usado no relatório
+    carregamentos = CarregamentoDashboard.objects.filter(
+        data_criacao__date__range=[data_inicio, data_fim]
+    )
+    
+    # Aplicar filtros adicionais
+    if empresa_filtro:
+        carregamentos = carregamentos.filter(empresa_id=empresa_filtro)
+    
+    if status_filtro:
+        if status_filtro == 'concluido':
+            carregamentos = carregamentos.filter(status='concluido')
+        elif status_filtro == 'pendente':
+            carregamentos = carregamentos.filter(status='pendente')
+    
+    dados = []
+    for carregamento in carregamentos:
+        dados.append({
+            'data_criacao': carregamento.data_criacao.strftime('%d/%m/%Y %H:%M'),
+            'empresa': carregamento.empresa.nome,
+            'material': carregamento.material,
+            'status': carregamento.get_status_display(),
+            'data_conclusao': carregamento.data_conclusao.strftime('%d/%m/%Y %H:%M') if carregamento.data_conclusao else '',
+            'concluido_por': carregamento.concluido_por.perfil.nome if carregamento.concluido_por and hasattr(carregamento.concluido_por, 'perfil') else (carregamento.concluido_por.username if carregamento.concluido_por else ''),
+            'criado_por': carregamento.criado_por.perfil.nome if carregamento.criado_por and hasattr(carregamento.criado_por, 'perfil') else (carregamento.criado_por.username if carregamento.criado_por else '')
+        })
+    
+    return dados
+
+def obter_dados_carregamento_pdf(request):
+    """Obtém dados do relatório de carregamento para PDF"""
+    return obter_dados_carregamento_excel(request)

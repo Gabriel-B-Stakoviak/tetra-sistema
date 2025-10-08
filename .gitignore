@@ -6,7 +6,7 @@
 
 # Banco de dados
 *.sqlite3
-db.sqlite3
+# db.sqlite3  # Comentado para incluir no deploy
 
 # Cache do Python
 __pycache__/

@@ -29,6 +29,7 @@ const registrosData = {
         manutencao_eletrica: {{ registro.manutencao_eletrica|yesno:"true,false" }},
         quebra: {{ registro.quebra|yesno:"true,false" }},
         laminadora_parada: {{ registro.laminadora_parada|yesno:"true,false" }},
+        maquina_parada: {{ registro.maquina_parada|yesno:"true,false" }},
         outros: {{ registro.outros|yesno:"true,false" }}
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
@@ -52,6 +53,7 @@ function verDetalhes(registroId) {
     if (registro.manutencao_eletrica) ocorrenciasMarcadas.push('Manutenção Elétrica');
     if (registro.quebra) ocorrenciasMarcadas.push('Quebra');
     if (registro.laminadora_parada) ocorrenciasMarcadas.push('Laminadora Parada');
+    if (registro.maquina_parada) ocorrenciasMarcadas.push('Máquina Parada');
     if (registro.outros) ocorrenciasMarcadas.push('Outros');
     
     modalBody.innerHTML = `
@@ -286,7 +288,7 @@ function finalizarTurno(registroId) {
 
 <div class="container-fluid">
     <div class="row justify-content-center">
-        <div class="col-xl-10 col-lg-11">
+        <div class="col-xl-12 col-lg-12">
             <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-end mb-3">
@@ -381,7 +383,7 @@ function finalizarTurno(registroId) {
                                     <td>
                                         <button class="btn btn-sm btn-outline-info" 
                                                 onclick="verDetalhes({{ registro.id }})">
-                                            <i class="fas fa-eye"></i> Ver mais
+                                            <i class="fas fa-eye"></i> Ver
                                         </button>
                                     </td>
                                 </tr>

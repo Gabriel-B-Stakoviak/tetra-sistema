@@ -1,0 +1,361 @@
+{% extends 'login/dashboard/relatorio/base_relatorio.html' %}
+
+{% block relatorio_title %}Relatório de Carregamento{% endblock %}
+{% block relatorio_icon %}fas fa-truck{% endblock %}
+
+{% block filtros_extras %}
+<div class="form-group">
+    <label for="empresa">Empresa:</label>
+    <select class="form-control" id="empresa" name="empresa">
+        <option value="">Todas as Empresas</option>
+        {% for empresa in empresas %}
+        <option value="{{ empresa.id }}" {% if request.GET.empresa == empresa.id|stringformat:"s" %}selected{% endif %}>
+            {{ empresa.nome }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+<div class="form-group">
+    <label for="status">Status:</label>
+    <select class="form-control" id="status" name="status">
+        <option value="">Todos os Status</option>
+        <option value="pendente" {% if request.GET.status == 'pendente' %}selected{% endif %}>Pendente</option>
+        <option value="concluido" {% if request.GET.status == 'concluido' %}selected{% endif %}>Concluído</option>
+        <option value="cancelado" {% if request.GET.status == 'cancelado' %}selected{% endif %}>Cancelado</option>
+    </select>
+</div>
+{% endblock %}
+
+{% block relatorio_content %}
+{% csrf_token %}
+{% if dados_carregamento %}
+    <!-- Cards de Estatísticas -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_carregamentos }}</div>
+            <div class="stat-label">Total de Carregamentos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ carregamentos_concluidos }}</div>
+            <div class="stat-label">Concluídos</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ carregamentos_pendentes }}</div>
+            <div class="stat-label">Pendentes</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ carregamentos_cancelados }}</div>
+            <div class="stat-label">Cancelados</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_empresas }}</div>
+            <div class="stat-label">Empresas Atendidas</div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Status dos Carregamentos</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoStatus" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Carregamentos por Empresa</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoEmpresas" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evolução Temporal -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-chart-line"></i> Evolução dos Carregamentos</h5>
+        </div>
+        <div class="card-body">
+            <canvas id="graficoEvolucao" width="400" height="150"></canvas>
+        </div>
+    </div>
+
+    <!-- Resumo por Empresa -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-building"></i> Resumo por Empresa</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Empresa</th>
+                                    <th>Total</th>
+                                    <th>Concluídos</th>
+                                    <th>Pendentes</th>
+                                    <th>Cancelados</th>
+                                    <th>Taxa de Conclusão</th>
+                                    <th>Último Carregamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for empresa_info in resumo_empresas %}
+                                <tr>
+                                    <td><strong>{{ empresa_info.empresa__nome }}</strong></td>
+                                    <td>{{ empresa_info.total }}</td>
+                                    <td class="text-success">{{ empresa_info.concluidos }}</td>
+                                    <td class="text-warning">{{ empresa_info.pendentes }}</td>
+                                    <td class="text-danger">{{ empresa_info.cancelados }}</td>
+                                    <td>
+                                        <div class="progress" style="height: 20px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {% if empresa_info.total > 0 %}{% widthratio empresa_info.concluidos empresa_info.total 100 %}{% else %}0{% endif %}%">
+                                                {% if empresa_info.total > 0 %}
+                                                    {% widthratio empresa_info.concluidos empresa_info.total 100 %}%
+                                                {% else %}
+                                                    0%
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ empresa_info.ultimo_carregamento|date:"d/m/Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carregamentos Pendentes em Destaque -->
+    {% if carregamentos_pendentes_detalhes %}
+    <div class="card mt-4">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Carregamentos Pendentes</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for carregamento in carregamentos_pendentes_detalhes %}
+                <div class="col-md-6 mb-3">
+                    <div class="card border-warning">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ carregamento.empresa.nome }}</h6>
+                            <p class="card-text">
+                                <small class="text-muted">Criado em: {{ carregamento.data_criacao|date:"d/m/Y H:i" }}</small><br>
+                                <small class="text-muted">Por: {{ carregamento.criado_por.perfil.nome|default:carregamento.criado_por.username }}</small>
+                            </p>
+                            {% if carregamento.observacoes %}
+                            <p class="card-text">{{ carregamento.observacoes }}</p>
+                            {% endif %}
+                            <button class="btn btn-success btn-sm me-2" onclick="concluirCarregamento({{ carregamento.id }})">
+                                <i class="fas fa-check"></i> Concluído
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="cancelarCarregamento({{ carregamento.id }})">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% else %}
+    <div class="no-data">
+        <i class="fas fa-truck fa-3x mb-3"></i>
+        <p>Nenhum carregamento encontrado para o período selecionado.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if dados_carregamento %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de Status
+    const ctxStatus = document.getElementById('graficoStatus').getContext('2d');
+    new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: {
+            labels: ['Concluídos', 'Pendentes', 'Cancelados'],
+            datasets: [{
+                data: [{{ carregamentos_concluidos }}, {{ carregamentos_pendentes }}, {{ carregamentos_cancelados }}],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(220, 53, 69, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Gráfico de Empresas
+    const ctxEmpresas = document.getElementById('graficoEmpresas').getContext('2d');
+    const empresasLabels = [
+        {% for empresa_info in resumo_empresas|slice:":5" %}
+        '{{ empresa_info.empresa__nome|truncatechars:15 }}',
+        {% endfor %}
+    ];
+    const empresasData = [
+        {% for empresa_info in resumo_empresas|slice:":5" %}
+        {{ empresa_info.total }},
+        {% endfor %}
+    ];
+
+    new Chart(ctxEmpresas, {
+        type: 'bar',
+        data: {
+            labels: empresasLabels,
+            datasets: [{
+                label: 'Carregamentos',
+                data: empresasData,
+                backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Gráfico de Evolução
+    const ctxEvolucao = document.getElementById('graficoEvolucao').getContext('2d');
+    const datasEvolucao = [
+        {% for carregamento in dados_carregamento %}
+        '{{ carregamento.data_criacao|date:"d/m" }}',
+        {% endfor %}
+    ];
+
+    // Agrupar por data para evolução
+    const carregamentosPorData = {};
+    {% for carregamento in dados_carregamento %}
+    (function() {
+        const dataCarregamento = '{{ carregamento.data_criacao|date:"d/m" }}';
+        carregamentosPorData[dataCarregamento] = (carregamentosPorData[dataCarregamento] || 0) + 1;
+    })();
+    {% endfor %}
+
+    const datasUnicas = Object.keys(carregamentosPorData).sort();
+    const valoresEvolucao = datasUnicas.map(dataKey => carregamentosPorData[dataKey]);
+
+    new Chart(ctxEvolucao, {
+        type: 'line',
+        data: {
+            labels: datasUnicas,
+            datasets: [{
+                label: 'Carregamentos por Dia',
+                data: valoresEvolucao,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Função para concluir carregamento
+    function concluirCarregamento(carregamentoId) {
+        if (confirm('Tem certeza que deseja marcar este carregamento como concluído?')) {
+            fetch(`/marcar-carregamento-concluido/${carregamentoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Erro ao concluir carregamento: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao concluir carregamento');
+            });
+        }
+    }
+
+    function cancelarCarregamento(carregamentoId) {
+        if (confirm('Tem certeza que deseja cancelar este carregamento? Esta ação não pode ser desfeita.')) {
+            fetch(`/marcar-carregamento-cancelado/${carregamentoId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else {
+                    alert('Erro ao cancelar carregamento: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                alert('Erro ao cancelar carregamento');
+            });
+        }
+    }
+</script>
+{% endif %}
+{% endblock %}

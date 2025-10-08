@@ -1,0 +1,348 @@
+{% extends 'internal-base/base-dash.html' %}
+{% load static %}
+
+{% block title %}{% block relatorio_title %}Relatório{% endblock %} - Tetra{% endblock %}
+
+{% block extra_css %}
+<style>
+    .relatorio-container {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+        margin: 20px 0;
+    }
+
+    .relatorio-header {
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+    }
+
+    .relatorio-title {
+        color: #007bff;
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .filtros-container {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        border: 1px solid #dee2e6;
+    }
+
+    .filtros-title {
+        color: #495057;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 15px;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 5px;
+    }
+
+    .form-control {
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        padding: 8px 12px;
+    }
+
+    .btn-filtrar {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        border: none;
+        color: white;
+        padding: 10px 25px;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        height: fit-content;
+    }
+
+    .btn-filtrar:hover {
+        background: linear-gradient(135deg, #0056b3, #004085);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+    }
+
+    .btn-exportar {
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+        border: none;
+        color: white;
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-left: 10px;
+    }
+
+    .btn-exportar:hover {
+        background: linear-gradient(135deg, #1e7e34, #155724);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+    }
+
+    .relatorio-content {
+        margin-top: 30px;
+    }
+
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 5px;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+    }
+
+    .table-container {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .table {
+        margin: 0;
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-color: #dee2e6;
+        text-align: center;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    .periodo-info {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 0 6px 6px 0;
+    }
+
+    .periodo-info strong {
+        color: #1976d2;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            flex-direction: column;
+        }
+        
+        .form-group {
+            min-width: 100%;
+        }
+        
+        .stats-cards {
+            grid-template-columns: 1fr;
+        }
+        
+        .relatorio-container {
+            padding: 20px;
+            margin: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="relatorio-container">
+        <!-- Header do Relatório -->
+        <div class="relatorio-header">
+            <h1 class="relatorio-title">
+                <i class="{% block relatorio_icon %}fas fa-chart-bar{% endblock %}"></i>
+                <span id="titulo-relatorio">Relatório</span>
+            </h1>
+        </div>
+
+        <!-- Filtros -->
+        <div class="filtros-container">
+            <h3 class="filtros-title">
+                <i class="fas fa-filter"></i>
+                Filtros
+            </h3>
+            <form method="GET" id="filtroForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="data_inicio">Data Início:</label>
+                        <input type="date" class="form-control" id="data_inicio" name="data_inicio" 
+                               value="{{ request.GET.data_inicio|default:'' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="data_fim">Data Fim:</label>
+                        <input type="date" class="form-control" id="data_fim" name="data_fim" 
+                               value="{{ request.GET.data_fim|default:'' }}">
+                    </div>
+                    {% block filtros_extras %}{% endblock %}
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-filtrar">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <button type="button" class="btn btn-exportar" onclick="exportarPDF()">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button type="button" class="btn btn-exportar" onclick="exportarExcel()">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Informações do Período -->
+        {% if periodo_info %}
+        <div class="periodo-info">
+            <strong>Período:</strong> {{ periodo_info }}
+        </div>
+        {% endif %}
+
+        <!-- Conteúdo do Relatório -->
+        <div class="relatorio-content">
+            {% block relatorio_content %}
+            <div class="no-data">
+                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                <p>Selecione um período para visualizar os dados do relatório.</p>
+            </div>
+            {% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Função para exportar PDF
+    function exportarPDF() {
+        const tipoRelatorio = getTipoRelatorio();
+        const params = new URLSearchParams(window.location.search);
+        const url = `/exportar-pdf/${tipoRelatorio}/?${params.toString()}`;
+        window.open(url, '_blank');
+    }
+
+    // Função para exportar Excel
+    function exportarExcel() {
+        const tipoRelatorio = getTipoRelatorio();
+        const params = new URLSearchParams(window.location.search);
+        const url = `/exportar-excel/${tipoRelatorio}/?${params.toString()}`;
+        window.location.href = url;
+    }
+
+    // Função para determinar o tipo de relatório baseado na URL
+    function getTipoRelatorio() {
+        const path = window.location.pathname;
+        if (path.includes('relatorio-turno')) return 'turno';
+        if (path.includes('relatorio-extrusoura')) return 'extrusora';
+        if (path.includes('relatorio-carregamento')) return 'carregamento';
+        if (path.includes('relatorio-plil')) return 'plil';
+        if (path.includes('relatorio-etiquetas')) return 'etiquetas';
+        if (path.includes('relatorio-geral')) return 'geral';
+        return 'geral'; // fallback
+    }
+
+    // Definir data padrão (últimos 30 dias)
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataInicio = document.getElementById('data_inicio');
+        const dataFim = document.getElementById('data_fim');
+        
+        if (!dataInicio.value) {
+            const hoje = new Date();
+            const trintaDiasAtras = new Date(hoje);
+            trintaDiasAtras.setDate(hoje.getDate() - 30);
+            
+            dataInicio.value = trintaDiasAtras.toISOString().split('T')[0];
+            dataFim.value = hoje.toISOString().split('T')[0];
+        }
+    });
+
+    // Atualizar título do relatório
+    document.addEventListener('DOMContentLoaded', function() {
+        const tituloElement = document.getElementById('titulo-relatorio');
+        const tituloBloco = document.querySelector('title').textContent.split(' - ')[0];
+        if (tituloBloco && tituloBloco !== 'Relatório') {
+            tituloElement.textContent = tituloBloco;
+        }
+    });
+
+    // Validação de datas
+    document.getElementById('filtroForm').addEventListener('submit', function(e) {
+        const dataInicio = document.getElementById('data_inicio').value;
+        const dataFim = document.getElementById('data_fim').value;
+        
+        if (dataInicio && dataFim && dataInicio > dataFim) {
+            e.preventDefault();
+            alert('A data de início não pode ser maior que a data de fim.');
+        }
+    });
+</script>
+{% endblock %}

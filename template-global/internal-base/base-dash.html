@@ -1,247 +1,329 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema Tetrapak{% endblock title %}</title>
-    <link rel="stylesheet" href="{% static 'css/sidebar-layout.css' %}">
-    <link rel="stylesheet" href="{% static 'css/form-pages.css' %}">
+    <title>{% block title %}Dashboard - Sistema PRS{% endblock title %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --sidebar-width: 280px;
+            --sidebar-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --sidebar-text: #ffffff;
+            --sidebar-hover: rgba(255,255,255,0.1);
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+        
+        .user-info h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .user-info small {
+            opacity: 0.8;
+        }
+        
+        .sidebar .nav-link {
+            color: var(--sidebar-text);
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background-color: var(--sidebar-hover);
+            color: var(--sidebar-text);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 0.75rem;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .logout-section {
+            margin-top: auto;
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .logout-btn {
+            color: var(--sidebar-text);
+            text-decoration: none;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-radius: 0.375rem;
+        }
+        
+        .logout-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: var(--sidebar-text);
+        }
+        
+        .logout-btn i {
+            margin-right: 0.75rem;
+        }
+        
+        /* Overlay para mobile */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 1050;
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .mobile-toggle {
+                position: fixed;
+                top: 1rem;
+                left: 1rem;
+                z-index: 1051;
+                background: var(--sidebar-bg);
+                border: none;
+                color: white;
+                padding: 0.5rem;
+                border-radius: 0.375rem;
+            }
+        }
+        
+        .mobile-toggle {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-toggle {
+                display: block;
+            }
+        }
+    </style>
+    
     {% block extra_css %}{% endblock extra_css %}
 </head>
 <body>
-    {% csrf_token %}
-    
-    <!-- Botão toggle mobile -->
-    <button class="mobile-toggle" id="mobileToggle">
+    <!-- Mobile Toggle -->
+    <button class="mobile-toggle d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar">
         <i class="fas fa-bars"></i>
     </button>
-    
-    <!-- Overlay para mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
-    <!-- Container principal -->
-    <div class="main-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <!-- Perfil do usuário -->
-            <div class="user-profile">
-                <div class="user-avatar">
-                    {{ user.perfil.nome|first|upper }}
-                </div>
-                <div class="user-info">
-                    <h3>{{ user.perfil.nome }}</h3>
-                    <p>{{ user.perfil.get_cargo_display }}</p>
-                    <span class="user-re">RE: {{ user.perfil.re }}</span>
-                </div>
+
+    <!-- Sidebar -->
+    <div class="offcanvas-md offcanvas-start sidebar" tabindex="-1" id="sidebar">
+        <!-- Sidebar Header -->
+        <div class="sidebar-header">
+            <div class="user-info">
+                <i class="fas fa-user-circle fa-3x mb-2"></i>
+                <h5>{{ user.perfil.nome }} {{ user.perfil.sobrenome }}</h5>
+                <small>{{ user.perfil.get_cargo_display }}</small>
+                <div class="mt-1"><small>RE: {{ user.perfil.re }}</small></div>
             </div>
-            
-            <!-- Menu de navegação -->
-            <nav class="sidebar-nav">
+        </div>
+
+        <!-- Navigation -->
+        <div class="offcanvas-body p-0">
+            <nav class="nav flex-column">
+                <!-- Home/Dashboard Principal -->
+                <a class="nav-link" href="{% url 'dashboard' %}">
+                    <i class="fas fa-home"></i>
+                    Home
+                </a>
+                
                 <!-- Fechamento de Turno -->
-                <div class="nav-item">
-                    <a href="{% url 'fechamentoTurno' %}" class="nav-link">
-                        <i class="fas fa-clock nav-icon"></i>
-                        <span>Fechamento de Turno</span>
-                    </a>
-                </div>
+                <a class="nav-link" href="{% url 'fechamentoTurno' %}">
+                    <i class="fas fa-clock"></i>
+                    Fechamento de Turno
+                </a>
                 
                 <!-- Carregamento -->
-                <div class="nav-item">
-                    <a href="{% url 'carregamento' %}" class="nav-link">
-                        <i class="fas fa-truck-loading nav-icon"></i>
-                        <span>Carregamento</span>
-                    </a>
-                </div>
+                <a class="nav-link" href="{% url 'carregamento' %}">
+                    <i class="fas fa-truck-loading"></i>
+                    Carregamento
+                </a>
                 
-                <!-- Dropdown Extrusora -->
-                <div class="nav-item dropdown" id="extrusoraDropdown">
-                    <div class="dropdown-toggle">
-                        <div>
-                            <i class="fas fa-industry nav-icon"></i>
-                            <span>Extrusora</span>
-                        </div>
-                        <i class="fas fa-chevron-down dropdown-arrow"></i>
-                    </div>
-                    <div class="dropdown-menu">
-                        <a href="{% url 'diario-bordo-lista' %}" class="dropdown-item">
-                            <i class="fas fa-book"></i> Diário de Bordo
-                        </a>
-                        <a href="{% url 'agua-extrusoura' %}" class="dropdown-item">
-                            <i class="fas fa-tint"></i> Água Extrusora
-                        </a>
-                        <a href="{% url 'fechamento-bag-pe' %}" class="dropdown-item">
-                            <i class="fas fa-archive"></i> Fechamento de Bag
-                        </a>
-                    </div>
+                <!-- Extrusora Dropdown -->
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-industry"></i>
+                        Extrusora
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="{% url 'diario-bordo-lista' %}">
+                            <i class="fas fa-book me-2"></i>Diário de Bordo
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'agua-extrusoura' %}">
+                            <i class="fas fa-tint me-2"></i>Água Extrusora
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'fechamento-bag-pe' %}">
+                            <i class="fas fa-archive me-2"></i>Fechamento de Bag
+                        </a></li>
+                    </ul>
                 </div>
                 
                 <!-- Inventário -->
-                <div class="nav-item">
-                    <a href="{% url 'inventario' %}" class="nav-link">
-                        <i class="fas fa-boxes nav-icon"></i>
-                        <span>Inventário</span>
-                    </a>
-                </div>
+                <a class="nav-link" href="{% url 'inventario' %}">
+                    <i class="fas fa-boxes"></i>
+                    Inventário
+                </a>
                 
                 <!-- PLIL -->
-                <div class="nav-item">
-                    <a href="{% url 'plil' %}" class="nav-link">
-                        <i class="fas fa-clipboard-list nav-icon"></i>
-                        <span>PLIL</span>
-                    </a>
-                </div>
+                <a class="nav-link" href="{% url 'plil' %}">
+                    <i class="fas fa-clipboard-list"></i>
+                    PLIL
+                </a>
                 
                 <!-- Etiqueta -->
-                <div class="nav-item">
-                    <a href="{% url 'etiqueta' %}" class="nav-link">
-                        <i class="fas fa-tags nav-icon"></i>
-                        <span>Etiqueta</span>
+                <a class="nav-link" href="{% url 'etiqueta' %}">
+                    <i class="fas fa-tags"></i>
+                    Etiqueta
+                </a>
+                
+                <!-- Dashboard Admin (apenas para gerentes e admins) -->
+                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-chart-bar"></i>
+                        Relatórios
                     </a>
+                    <ul class="dropdown-menu dropdown-menu-dark">
+                        <li><a class="dropdown-item" href="{% url 'relatorioTurno' %}">
+                            <i class="fas fa-clock me-2"></i>Relatório de Turno
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'relatorioExtrusoura' %}">
+                            <i class="fas fa-industry me-2"></i>Relatório Extrusora
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'relatorioCarregamento' %}">
+                            <i class="fas fa-truck me-2"></i>Relatório Carregamento
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'relatorioPlil' %}">
+                            <i class="fas fa-list-alt me-2"></i>Relatório PLIL
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'relatorioEtiquetas' %}">
+                            <i class="fas fa-tag me-2"></i>Relatório Etiquetas
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'relatorioGeral' %}">
+                            <i class="fas fa-chart-line me-2"></i>Relatório Geral
+                        </a></li>
+                    </ul>
                 </div>
                 
-                <!-- Dropdown Dashboard (apenas para gerentes e admins) -->
-                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
-                <div class="nav-item dropdown" id="dashboardDropdown">
-                    <div class="dropdown-toggle">
-                        <div>
-                            <i class="fas fa-chart-bar nav-icon"></i>
-                            <span>Dashboard</span>
-                        </div>
-                        <i class="fas fa-chevron-down dropdown-arrow"></i>
-                    </div>
-                    <div class="dropdown-menu">
-                        <a href="{% url 'relatorioTurno' %}" class="dropdown-item">
-                            <i class="fas fa-clock"></i> Relatório de Turno
-                        </a>
-                        <a href="{% url 'relatorioExtrusoura' %}" class="dropdown-item">
-                            <i class="fas fa-industry"></i> Relatório Extrusora
-                        </a>
-                        <a href="{% url 'relatorioCarregamento' %}" class="dropdown-item">
-                            <i class="fas fa-truck"></i> Relatório Carregamento
-                        </a>
-                        <a href="{% url 'relatorioPlil' %}" class="dropdown-item">
-                            <i class="fas fa-list-alt"></i> Relatório PLIL
-                        </a>
-                        <a href="{% url 'relatorioEtiquetas' %}" class="dropdown-item">
-                            <i class="fas fa-tag"></i> Relatório Etiquetas
-                        </a>
-                        <a href="{% url 'relatorioGeral' %}" class="dropdown-item">
-                            <i class="fas fa-chart-line"></i> Relatório Geral
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
+                <!-- Conteúdo Principal -->
+                <a class="nav-link" href="{% url 'conteudoPrincipal' %}">
+                    <i class="fas fa-home"></i>
+                    Página Carrossel
+                </a>
                 
-                <!-- Conteúdo Principal (apenas para gerentes e admins) -->
-                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
-                <div class="nav-item">
-                    <a href="{% url 'conteudoPrincipal' %}" class="nav-link">
-                        <i class="fas fa-home nav-icon"></i>
-                        <span>Página Carrossel</span>
-                    </a>
-                </div>
-                {% endif %}
-                
-                <!-- Cadastro e Gerenciamento (apenas para gerentes e admins) -->
-                {% if user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrador' %}
-                <div class="nav-item">
-                    <a href="{% url 'cadastrosGerenciamento' %}" class="nav-link">
-                        <i class="fas fa-users-cog nav-icon"></i>
-                        <span>Cadastro e Gerenciamento</span>
-                    </a>
-                </div>
+                <!-- Cadastro e Gerenciamento -->
+                <a class="nav-link" href="{% url 'cadastrosGerenciamento' %}">
+                    <i class="fas fa-users-cog"></i>
+                    Cadastro e Gerenciamento
+                </a>
                 {% endif %}
                 
                 <!-- Configuração -->
-                <div class="nav-item">
-                    <a href="{% url 'configuracao' %}" class="nav-link">
-                        <i class="fas fa-cog nav-icon"></i>
-                        <span>Configuração</span>
-                    </a>
-                </div>
-            </nav>
-            
-            <!-- Botão de logout -->
-            <div class="logout-section">
-                <a href="{% url 'logout' %}" class="logout-btn">
-                    <i class="fas fa-sign-out-alt nav-icon"></i>
-                    <span>Sair</span>
+                <a class="nav-link" href="{% url 'configuracao' %}">
+                    <i class="fas fa-cog"></i>
+                    Configuração
                 </a>
-            </div>
-        </aside>
+            </nav>
+        </div>
         
-        <!-- Área de conteúdo -->
-        <main class="content-area" id="contentArea">
-            <div class="page-header">
-                <h1>{% block title-page %}{% endblock title-page %}</h1>
-            </div>
-            {% block content %}{% endblock content %}
-        </main>
+        <!-- Logout -->
+        <div class="logout-section">
+            <a href="{% url 'logout' %}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Sair
+            </a>
+        </div>
     </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h3 mb-0">{% block title-page %}{% endblock title-page %}</h1>
+                    </div>
+                    {% block content %}{% endblock content %}
+                </div>
+            </div>
+        </div>
+    </main>
     
-    <!-- JavaScript -->
+    <!-- Overlay para mobile -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const mobileToggle = document.getElementById('mobileToggle');
-            const sidebar = document.getElementById('sidebar');
-            const sidebarOverlay = document.getElementById('sidebarOverlay');
-            const contentArea = document.getElementById('contentArea');
-            
-            // Toggle mobile menu
-            mobileToggle.addEventListener('click', function() {
-                sidebar.classList.toggle('open');
-                sidebarOverlay.classList.toggle('active');
-                
-                if (window.innerWidth <= 768) {
-                    document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : '';
-                }
-            });
-            
-            // Close sidebar when clicking overlay
-            sidebarOverlay.addEventListener('click', function() {
-                sidebar.classList.remove('open');
-                sidebarOverlay.classList.remove('active');
-                document.body.style.overflow = '';
-            });
-            
-            // Handle dropdowns
-            const dropdowns = document.querySelectorAll('.dropdown');
-            dropdowns.forEach(dropdown => {
-                const toggle = dropdown.querySelector('.dropdown-toggle');
-                toggle.addEventListener('click', function() {
-                    // Close other dropdowns
-                    dropdowns.forEach(otherDropdown => {
-                        if (otherDropdown !== dropdown) {
-                            otherDropdown.classList.remove('open');
-                        }
-                    });
-                    
-                    // Toggle current dropdown
-                    dropdown.classList.toggle('open');
-                });
-            });
-            
-            // Close dropdowns when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.dropdown')) {
-                    dropdowns.forEach(dropdown => {
-                        dropdown.classList.remove('open');
-                    });
-                }
-            });
-            
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                if (window.innerWidth > 768) {
-                    sidebar.classList.remove('open');
-                    sidebarOverlay.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            });
-            
             // Set active nav item based on current URL
             const currentPath = window.location.pathname;
             const navLinks = document.querySelectorAll('.nav-link, .dropdown-item');
@@ -250,10 +332,70 @@
                 if (link.getAttribute('href') === currentPath) {
                     link.classList.add('active');
                     
-                    // If it's a dropdown item, open the parent dropdown
+                    // If it's a dropdown item, show the parent dropdown as active
                     const parentDropdown = link.closest('.dropdown');
                     if (parentDropdown) {
-                        parentDropdown.classList.add('open');
+                        const parentToggle = parentDropdown.querySelector('.dropdown-toggle');
+                        if (parentToggle) {
+                            parentToggle.classList.add('active');
+                        }
+                    }
+                }
+            });
+
+            // Mobile sidebar control
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const mobileToggle = document.querySelector('.mobile-toggle');
+            
+            // Function to open sidebar
+            function openSidebar() {
+                sidebar.classList.add('show');
+                overlay.classList.add('show');
+            }
+            
+            // Function to close sidebar
+            function closeSidebar() {
+                sidebar.classList.remove('show');
+                overlay.classList.remove('show');
+            }
+            
+            // Toggle sidebar on mobile
+            if (mobileToggle) {
+                mobileToggle.addEventListener('click', function() {
+                    if (sidebar.classList.contains('show')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            }
+            
+            // Close sidebar when clicking overlay
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    closeSidebar();
+                });
+            }
+            
+            // Close sidebar when clicking a nav link on mobile
+            const navLinksAll = document.querySelectorAll('.sidebar .nav-link, .sidebar .dropdown-item');
+            navLinksAll.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        closeSidebar();
+                    }
+                });
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && sidebar.classList.contains('show')) {
+                    const isClickInsideSidebar = sidebar.contains(event.target);
+                    const isClickOnToggle = mobileToggle && mobileToggle.contains(event.target);
+                    
+                    if (!isClickInsideSidebar && !isClickOnToggle) {
+                        closeSidebar();
                     }
                 }
             });

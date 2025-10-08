@@ -1,0 +1,321 @@
+{% extends 'login/dashboard/relatorio/base_relatorio.html' %}
+
+{% block relatorio_title %}Relatório Extrusora{% endblock %}
+{% block relatorio_icon %}fas fa-industry{% endblock %}
+
+{% block filtros_extras %}
+<div class="form-group">
+    <label for="turno">Turno:</label>
+    <select class="form-control" id="turno" name="turno">
+        <option value="">Todos os Turnos</option>
+        <option value="A" {% if request.GET.turno == 'A' %}selected{% endif %}>Turno A</option>
+        <option value="B" {% if request.GET.turno == 'B' %}selected{% endif %}>Turno B</option>
+        <option value="C" {% if request.GET.turno == 'C' %}selected{% endif %}>Turno C</option>
+    </select>
+</div>
+<div class="form-group">
+    <label for="status">Status:</label>
+    <select class="form-control" id="status" name="status">
+        <option value="">Todos os Status</option>
+        <option value="finalizado" {% if request.GET.status == 'finalizado' %}selected{% endif %}>Finalizado</option>
+        <option value="maquina_parada" {% if request.GET.status == 'maquina_parada' %}selected{% endif %}>Máquina Parada</option>
+    </select>
+</div>
+{% endblock %}
+
+{% block relatorio_content %}
+{% if dados_extrusora %}
+    <!-- Cards de Estatísticas -->
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_registros }}</div>
+            <div class="stat-label">Total de Registros</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ registros_finalizados }}</div>
+            <div class="stat-label">Registros Finalizados</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ registros_andamento }}</div>
+            <div class="stat-label">Em Andamento</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #28a745;">
+            <div class="stat-value text-success">{{ tempo_medio_sem_maquina_parada|floatformat:1 }}h</div>
+            <div class="stat-label">Tempo Médio Normal</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #dc3545;">
+            <div class="stat-value text-danger">{{ tempo_medio_maquina_parada|floatformat:1 }}h</div>
+            <div class="stat-label">Tempo Médio c/ Parada</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #dc3545;">
+            <div class="stat-value text-danger">{{ total_maquina_parada }}</div>
+            <div class="stat-label">Total Máq. Parada</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #007bff;">
+            <div class="stat-value text-primary">{{ taxa_conclusao|floatformat:1 }}%</div>
+            <div class="stat-label">Taxa de Conclusão</div>
+        </div>
+        <div class="stat-card" style="border-left: 4px solid #28a745;">
+            <div class="stat-value text-success">{{ aproveitamento_maquina|floatformat:1 }}%</div>
+            <div class="stat-label">Aproveitamento</div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <!-- Gráfico de Colunas (Registros por Turno) -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Registros por Turno</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoTurnos" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de Pizza (Status dos Registros) -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Status dos Registros</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="graficoStatus" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Dados -->
+    <div class="table-container">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Data</th>
+                    <th>Turno</th>
+                    <th>Responsável (RE)</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Duração</th>
+                    <th>Status</th>
+                    <th>Observações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registro in dados_extrusora %}
+                <tr>
+                    <td>{{ registro.data|date:"d/m/Y" }}</td>
+                    <td>
+                        <span class="badge 
+                            {% if registro.turno == 'A' %}bg-primary
+                            {% elif registro.turno == 'B' %}bg-success
+                            {% else %}bg-warning{% endif %}">
+                            Turno {{ registro.turno }}
+                        </span>
+                    </td>
+                    <td>{{ registro.re }}</td>
+                    <td>{{ registro.inicio|time:"H:i" }}</td>
+                    <td>
+                        {% if registro.fim %}
+                            {{ registro.fim|time:"H:i" }}
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if registro.fim %}
+                            {% with duracao=registro.fim|timeuntil:registro.inicio %}
+                                {{ duracao }}
+                            {% endwith %}
+                        {% else %}
+                            <span class="text-muted">Em andamento</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if registro.maquina_parada %}
+                            <span class="badge bg-danger">Máquina Parada</span>
+                        {% elif registro.fim %}
+                            <span class="badge bg-success">Finalizado</span>
+                        {% else %}
+                            <span class="badge bg-warning">Em Andamento</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ registro.observacoes|default:"-"|truncatechars:50 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Resumo por Turno -->
+    <div class="row mt-4">
+        {% for turno_info in resumo_turnos %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header 
+                    {% if turno_info.turno == 'A' %}bg-primary
+                    {% elif turno_info.turno == 'B' %}bg-success
+                    {% else %}bg-warning{% endif %} text-white">
+                    <h6 class="mb-0">Turno {{ turno_info.turno }}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <h4 class="text-primary">{{ turno_info.total_registros }}</h4>
+                            <small class="text-muted">Registros</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-success">{{ turno_info.finalizados }}</h4>
+                            <small class="text-muted">Finalizados</small>
+                        </div>
+                        <div class="col-4">
+                            <h4 class="text-danger">{{ turno_info.maquina_parada }}</h4>
+                            <small class="text-muted">Máq. Parada</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <strong>Taxa de Conclusão: 
+                            {% if turno_info.total_registros > 0 %}
+                                {% widthratio turno_info.finalizados turno_info.total_registros 100 %}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Detalhes dos Registros em Andamento -->
+    {% if registros_andamento_detalhes %}
+    <div class="card mt-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Registros em Andamento</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Turno</th>
+                            <th>RE</th>
+                            <th>Início</th>
+                            <th>Tempo Decorrido</th>
+                            <th>Observações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for registro in registros_andamento_detalhes %}
+                        <tr>
+                            <td>{{ registro.data|date:"d/m/Y" }}</td>
+                            <td>Turno {{ registro.turno }}</td>
+                            <td>{{ registro.re }}</td>
+                            <td>{{ registro.inicio|time:"H:i" }}</td>
+                            <td class="text-warning">
+                                <strong>{{ registro.tempo_decorrido }}</strong>
+                            </td>
+                            <td>{{ registro.observacoes|default:"-"|truncatechars:30 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% else %}
+    <div class="no-data">
+        <i class="fas fa-industry fa-3x mb-3"></i>
+        <p>Nenhum registro de extrusora encontrado para o período selecionado.</p>
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if dados_extrusora %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Gráfico de Status
+    const ctxStatus = document.getElementById('graficoStatus').getContext('2d');
+    new Chart(ctxStatus, {
+        type: 'doughnut',
+        data: {
+            labels: ['Finalizados', 'Em Andamento'],
+            datasets: [{
+                data: [{{ registros_finalizados }}, {{ registros_andamento }}],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(40, 167, 69, 1)',
+                    'rgba(255, 193, 7, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+    // Gráfico de Turnos
+    const ctxTurnos = document.getElementById('graficoTurnos').getContext('2d');
+    const dadosTurnos = {
+        'A': {{ resumo_turnos.0.total_registros|default:0 }},
+        'B': {{ resumo_turnos.1.total_registros|default:0 }},
+        'C': {{ resumo_turnos.2.total_registros|default:0 }}
+    };
+
+    new Chart(ctxTurnos, {
+        type: 'bar',
+        data: {
+            labels: ['Turno A', 'Turno B', 'Turno C'],
+            datasets: [{
+                label: 'Registros',
+                data: [dadosTurnos.A, dadosTurnos.B, dadosTurnos.C],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(255, 206, 86, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

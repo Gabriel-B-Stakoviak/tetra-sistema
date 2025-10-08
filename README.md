@@ -42,12 +42,14 @@ Este projeto usa variáveis de ambiente para proteger informações sensíveis:
    - Configure as variáveis conforme `.env.example`
    - **IMPORTANTE:** Use uma SECRET_KEY diferente para produção
 
-5. **Configurar banco de dados:**
+5. **Configurar banco de dados (SQLite):**
    ```bash
    python manage.py migrate
    python manage.py collectstatic
    python manage.py createsuperuser
    ```
+   
+   **Nota:** Este projeto usa SQLite como banco de dados, que é ideal para aplicações pequenas e médias. O arquivo `db.sqlite3` está incluído no repositório para facilitar o deploy.
 
 6. **Configurar Web App no PythonAnywhere:**
    - Source code: `/home/yourusername/seu-repositorio`

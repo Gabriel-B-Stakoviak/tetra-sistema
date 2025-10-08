@@ -32,5 +32,11 @@ urlpatterns = [
     path('conteudo-principal/', conteudoPrincipal, name='conteudoPrincipal'),
     path('cadastros-gerenciamento/', cadastrosGerenciamento, name='cadastrosGerenciamento'),
     path('configuracao/', configuracao, name='configuracao'),
+    # Dashboard AJAX
+    path('marcar-carregamento-concluido/<int:carregamento_id>/', marcar_carregamento_concluido, name='marcar_carregamento_concluido'),
+    path('marcar-carregamento-cancelado/<int:carregamento_id>/', marcar_carregamento_cancelado, name='marcar_carregamento_cancelado'),
+    # Exportação de Relatórios
+    path('exportar-excel/<str:tipo_relatorio>/', exportar_relatorio_excel, name='exportar_relatorio_excel'),
+    path('exportar-pdf/<str:tipo_relatorio>/', exportar_relatorio_pdf, name='exportar_relatorio_pdf'),
     
 ]
