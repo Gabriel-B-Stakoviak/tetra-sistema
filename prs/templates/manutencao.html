@@ -1,0 +1,126 @@
+{% extends 'internal-base/base-dash.html' %}
+{% load static %}
+
+{% block title %}{{ titulo_pagina|default:"Página" }} - Em Manutenção{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-tools me-2"></i>
+                        {{ titulo_pagina|default:"Página" }} - Em Manutenção
+                    </h3>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8 col-lg-6">
+                            <div class="maintenance-icon mb-4">
+                                <i class="fas fa-wrench fa-5x text-warning"></i>
+                            </div>
+                            
+                            <h4 class="mb-3">Página em Manutenção</h4>
+                            
+                            <div class="alert alert-warning" role="alert">
+                                <p class="mb-2">
+                                    <strong>Esta página está temporariamente indisponível.</strong>
+                                </p>
+                                <p class="mb-0">
+                                    Estamos trabalhando para melhorar sua experiência. 
+                                    Em breve esta funcionalidade estará disponível com todas as melhorias.
+                                </p>
+                            </div>
+                            
+                            <div class="maintenance-details mt-4">
+                                <h6 class="text-muted mb-3">O que está sendo feito:</h6>
+                                <ul class="list-unstyled text-start">
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Otimização da interface
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Melhorias de performance
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-spinner fa-spin text-primary me-2"></i>
+                                        Implementação de novas funcionalidades
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-clock text-warning me-2"></i>
+                                        Testes de qualidade
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <a href="{% url 'dashboard' %}" class="btn btn-primary me-2">
+                                    <i class="fas fa-arrow-left me-2"></i>
+                                    Voltar ao Dashboard
+                                </a>
+                                <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload()">
+                                    <i class="fas fa-sync-alt me-2"></i>
+                                    Tentar Novamente
+                                </button>
+                            </div>
+                            
+                            <div class="mt-4 pt-3 border-top">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Para mais informações, entre em contato com a equipe de desenvolvimento.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .maintenance-icon {
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+        100% {
+            transform: scale(1);
+        }
+    }
+    
+    .maintenance-details ul {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .card {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Tema escuro específico para página de manutenção */
+    body.dark-mode .maintenance-icon {
+        color: #ffc107 !important;
+    }
+    
+    body.dark-mode .alert-warning {
+        background-color: #5d4e1a !important;
+        border-color: #8d7e2a !important;
+        color: #ffeaa7 !important;
+    }
+    
+    body.dark-mode .border-top {
+        border-color: #555 !important;
+    }
+</style>
+{% endblock %}

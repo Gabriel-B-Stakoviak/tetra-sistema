@@ -1,0 +1,125 @@
+{% extends 'internal-base/base-dash.html' %}
+{% load static %}
+
+{% block title %}{{ titulo_pagina|default:"Página" }} - Em Manutenção{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-tools me-2"></i>
+                        {{ titulo_pagina|default:"Página" }} - Em Manutenção
+                    </h3>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8 col-lg-6">
+                            <div class="maintenance-icon mb-4">
+                                <i class="fas fa-wrench fa-5x text-warning"></i>
+                            </div>
+                            
+                            <h4 class="mb-3">Página em Manutenção</h4>
+                            
+                            <div class="alert alert-warning" role="alert">
+                                <p class="mb-2">
+                                    <strong>Esta página está temporariamente indisponível.</strong>
+                                </p>
+                                <p class="mb-0">
+                                    Estamos trabalhando para melhorar sua experiência. 
+                                    Em breve esta funcionalidade estará disponível com todas as melhorias.
+                                </p>
+                            </div>
+                            
+                            <div class="maintenance-details mt-4">
+                                <h6 class="text-muted mb-3">O que está sendo feito:</h6>
+                                <ul class="list-unstyled text-start">
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Otimização da interface
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Melhorias de performance
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-spinner fa-spin text-primary me-2"></i>
+                                        Implementação de novas funcionalidades
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-clock text-info me-2"></i>
+                                        Testes de qualidade
+                                    </li>
+                                </ul>
+                            </div>
+                            
+                            <div class="progress mb-4" style="height: 8px;">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-warning" 
+                                     role="progressbar" style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                            
+                            <div class="maintenance-actions">
+                                <a href="{% url 'dashboard' %}" class="btn btn-primary me-2">
+                                    <i class="fas fa-home me-1"></i>
+                                    Voltar ao Dashboard
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="window.location.reload()">
+                                    <i class="fas fa-sync-alt me-1"></i>
+                                    Tentar Novamente
+                                </button>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Esta é uma página temporária. O desenvolvimento está em andamento.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.maintenance-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+}
+
+.maintenance-details ul {
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+.btn {
+    border-radius: 25px;
+    padding: 10px 20px;
+}
+
+.progress {
+    border-radius: 10px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,360 @@
+{% extends 'internal-base/base-dash.html' %}
+{% load static %}
+
+{% block title %}PLIL - Gestão de Tarefas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list mr-2"></i>
+                        PLIL - Gestão de Tarefas
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Ação (apenas para admin/gerente/administrativo) -->
+    {% if user.perfil.cargo == 'administrador' or user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrativo' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-tools mr-2"></i>
+                        Ferramentas de Gestão
+                    </h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalNovoTemplate">
+                            <i class="fas fa-plus mr-2"></i>
+                            Novo Template de Tarefa
+                        </button>
+                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalAtribuirTarefa">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            Atribuir Tarefa
+                        </button>
+                        <a href="{% url 'plil_templates' %}" class="btn btn-secondary">
+                            <i class="fas fa-list mr-2"></i>
+                            Gerenciar Templates
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Minhas Tarefas -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-tasks mr-2"></i>
+                        Minhas Tarefas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if minhas_tarefas %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Tarefa</th>
+                                        <th>Data Prevista</th>
+                                        <th>Status</th>
+                                        <th>Periodicidade</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tarefa in minhas_tarefas %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ tarefa.template.titulo }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ tarefa.template.descricao|truncatechars:100 }}</small>
+                                        </td>
+                                        <td>
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            {{ tarefa.data_prevista|date:"d/m/Y" }}
+                                        </td>
+                                        <td>
+                                            {% if tarefa.status == 'pendente' %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-clock mr-1"></i>
+                                                    Pendente
+                                                </span>
+                                            {% elif tarefa.status == 'executada' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check mr-1"></i>
+                                                    Executada
+                                                </span>
+                                            {% elif tarefa.status == 'atrasada' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                                                    Atrasada
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                {{ tarefa.template.get_periodicidade_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if tarefa.status != 'executada' %}
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-primary" 
+                                                        onclick="verDetalhes({{ tarefa.id }}, '{{ tarefa.template.titulo }}', '{{ tarefa.template.descricao|escapejs }}', '{% if tarefa.template.imagem %}{{ tarefa.template.imagem.url }}{% endif %}')">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    Ver Detalhes
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-success" 
+                                                        onclick="executarTarefa({{ tarefa.id }})">
+                                                    <i class="fas fa-check mr-1"></i>
+                                                    Executar
+                                                </button>
+                                            {% else %}
+                                                <span class="text-muted">
+                                                    <i class="fas fa-check-circle mr-1"></i>
+                                                    Executada em {{ tarefa.data_execucao|date:"d/m/Y H:i" }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhuma tarefa atribuída</h5>
+                            <p class="text-muted">Você não possui tarefas atribuídas no momento.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Todas as Tarefas (apenas para admin/gerente/administrativo) -->
+    {% if user.perfil.cargo == 'administrador' or user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrativo' %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list mr-2"></i>
+                        Todas as Tarefas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if todas_tarefas %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Tarefa</th>
+                                        <th>Responsável</th>
+                                        <th>Data Prevista</th>
+                                        <th>Status</th>
+                                        <th>Atribuída por</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tarefa in todas_tarefas %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ tarefa.template.titulo }}</strong>
+                                        </td>
+                                        <td>
+                                            {{ tarefa.nome_responsavel }}
+                                            <br>
+                                            <small class="text-muted">RE: {{ tarefa.re_responsavel }}</small>
+                                        </td>
+                                        <td>{{ tarefa.data_prevista|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if tarefa.status == 'pendente' %}
+                                                <span class="badge bg-warning text-dark">Pendente</span>
+                                            {% elif tarefa.status == 'executada' %}
+                                                <span class="badge bg-success">Executada</span>
+                                            {% elif tarefa.status == 'atrasada' %}
+                                                <span class="badge bg-danger">Atrasada</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ tarefa.atribuida_por.perfil.nome }}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerTarefa({{ tarefa.id }})">
+                                                <i class="fas fa-trash mr-1"></i>
+                                                Remover
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhuma tarefa cadastrada</h5>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal Novo Template -->
+{% if user.perfil.cargo == 'administrador' or user.perfil.cargo == 'gerente' or user.perfil.cargo == 'administrativo' %}
+<div class="modal fade" id="modalNovoTemplate" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus mr-2"></i>
+                    Novo Template de Tarefa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'plil_criar_template' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ form_template.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save mr-2"></i>
+                        Salvar Template
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Atribuir Tarefa -->
+<div class="modal fade" id="modalAtribuirTarefa" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    Atribuir Tarefa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="{% url 'plil_atribuir_tarefa' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    {{ form_atribuir.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-user-plus mr-2"></i>
+                        Atribuir Tarefa
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal Ver Detalhes -->
+<div class="modal fade" id="modalDetalhes" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetalhesTitle">
+                    <i class="fas fa-eye mr-2"></i>
+                    Detalhes da Tarefa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalDetalhesContent">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Executar Tarefa -->
+<div class="modal fade" id="modalExecutar" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-check mr-2"></i>
+                    Executar Tarefa
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formExecutar" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Confirma que executou esta tarefa?</p>
+                    {{ form_executar.as_p }}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check mr-2"></i>
+                        Confirmar Execução
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function verDetalhes(tarefaId, titulo, descricao, imagemUrl) {
+    document.getElementById('modalDetalhesTitle').innerHTML = '<i class="fas fa-eye mr-2"></i>' + titulo;
+    
+    let content = '<h6>Descrição:</h6><p>' + descricao + '</p>';
+    
+    if (imagemUrl) {
+        content += '<h6>Imagem de Referência:</h6><img src="' + imagemUrl + '" class="img-fluid" alt="Imagem da tarefa">';
+    }
+    
+    document.getElementById('modalDetalhesContent').innerHTML = content;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modalDetalhes'));
+    modal.show();
+}
+
+function executarTarefa(tarefaId) {
+    document.getElementById('formExecutar').action = '/plil/executar/' + tarefaId + '/';
+    
+    var modal = new bootstrap.Modal(document.getElementById('modalExecutar'));
+    modal.show();
+}
+
+function removerTarefa(tarefaId) {
+    if (confirm('Tem certeza que deseja remover esta tarefa?')) {
+        window.location.href = '/plil/remover/' + tarefaId + '/';
+    }
+}
+</script>
+{% endblock %}

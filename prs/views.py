@@ -4,13 +4,14 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import ListView
-from .forms import RegistroForm, FechamentoTurnoForm, DiarioBordoForm, AguaCloroForm, EditarPerfilForm, ForcePasswordResetForm, CarregamentoForm, EmpresaForm
+from .forms import RegistroForm, FechamentoTurnoForm, DiarioBordoForm, AguaCloroForm, EditarPerfilForm, ForcePasswordResetForm, CarregamentoForm, EmpresaForm, TarefaTemplateForm, AtribuirTarefaForm, ExecutarTarefaForm
 from django.shortcuts import get_list_or_404
 from .models import *
 from datetime import datetime, time, timedelta
 from django.contrib import messages
 from django.utils import timezone
 from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
 from django.db.models import Sum, Count, Avg, Q, Max
 import io
 import json
@@ -440,7 +441,245 @@ def inventario(request):
 @login_required
 def plil(request):
     perfil = request.user.perfil
-    return render(request, 'login/dashboard/plil.html', {'perfil': perfil})
+    
+    # Buscar tarefas do usuário atual
+    minhas_tarefas = Plil.objects.filter(re_responsavel=perfil.re).order_by('data_prevista')
+    
+    # Se for admin/gerente/administrativo, buscar todas as tarefas
+    todas_tarefas = None
+    if perfil.cargo in ['administrador', 'gerente', 'administrativo']:
+        todas_tarefas = Plil.objects.all().order_by('-data_atribuicao')
+    
+    # Formulários
+    form_template = TarefaTemplateForm()
+    form_atribuir = AtribuirTarefaForm()
+    form_executar = ExecutarTarefaForm()
+    
+    context = {
+        'perfil': perfil,
+        'minhas_tarefas': minhas_tarefas,
+        'todas_tarefas': todas_tarefas,
+        'form_template': form_template,
+        'form_atribuir': form_atribuir,
+        'form_executar': form_executar,
+    }
+    
+    return render(request, 'login/dashboard/plil.html', context)
+
+@login_required
+def plil_criar_template(request):
+    """View para criar novos templates de tarefa"""
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        messages.error(request, 'Você não tem permissão para criar templates de tarefa.')
+        return redirect('plil')
+    
+    if request.method == 'POST':
+        form = TarefaTemplateForm(request.POST, request.FILES)
+        if form.is_valid():
+            template = form.save(commit=False)
+            template.criado_por = request.user
+            template.save()
+            # messages.success(request, 'Template de tarefa criado com sucesso!')
+        else:
+            messages.error(request, 'Erro ao criar template. Verifique os dados informados.')
+    
+    return redirect('plil')
+
+@login_required
+def plil_atribuir_tarefa(request):
+    """View para atribuir tarefas a funcionários"""
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        messages.error(request, 'Você não tem permissão para atribuir tarefas.')
+        return redirect('plil')
+    
+    if request.method == 'POST':
+        form = AtribuirTarefaForm(request.POST)
+        if form.is_valid():
+            tarefa = form.save(commit=False)
+            tarefa.atribuida_por = request.user
+            
+            # Buscar o nome do responsável pelo RE
+            try:
+                perfil_responsavel = Perfil.objects.get(re=tarefa.re_responsavel)
+                tarefa.nome_responsavel = perfil_responsavel.nome
+            except Perfil.DoesNotExist:
+                tarefa.nome_responsavel = f"RE {tarefa.re_responsavel}"
+            
+            tarefa.save()
+            # messages.success(request, f'Tarefa atribuída com sucesso para {tarefa.nome_responsavel}!')
+        else:
+            messages.error(request, 'Erro ao atribuir tarefa. Verifique os dados informados.')
+    
+    return redirect('plil')
+
+@login_required
+def plil_executar_tarefa(request, tarefa_id):
+    """View para marcar tarefa como executada"""
+    tarefa = get_object_or_404(Plil, id=tarefa_id)
+    perfil = request.user.perfil
+    
+    # Verificar se o usuário pode executar esta tarefa
+    if tarefa.re_responsavel != perfil.re:
+        messages.error(request, 'Você não tem permissão para executar esta tarefa.')
+        return redirect('plil')
+    
+    if request.method == 'POST':
+        form = ExecutarTarefaForm(request.POST)
+        if form.is_valid():
+            tarefa.status = 'executada'
+            tarefa.data_execucao = timezone.now()
+            tarefa.observacoes_execucao = form.cleaned_data['observacoes_execucao']
+            tarefa.save()
+            # messages.success(request, 'Tarefa marcada como executada!')
+        else:
+            messages.error(request, 'Erro ao executar tarefa.')
+    
+    return redirect('plil')
+
+@login_required
+def plil_remover_tarefa(request, tarefa_id):
+    """View para remover tarefa"""
+    tarefa = get_object_or_404(Plil, id=tarefa_id)
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        messages.error(request, 'Você não tem permissão para remover tarefas.')
+        return redirect('plil')
+    
+    tarefa.delete()
+    # messages.success(request, 'Tarefa removida com sucesso!')
+    return redirect('plil')
+
+@login_required
+def plil_templates(request):
+    """View para gerenciar templates de tarefa"""
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        messages.error(request, 'Você não tem permissão para gerenciar templates.')
+        return redirect('plil')
+    
+    # Buscar todos os templates com contagem de tarefas ativas
+    from django.db.models import Count, Q
+    templates = TarefaTemplate.objects.select_related('criado_por').annotate(
+        tarefas_ativas=Count('plil', filter=Q(plil__status__in=['pendente', 'atrasada']))
+    ).order_by('-data_criacao')
+    
+    context = {
+        'perfil': perfil,
+        'templates': templates,
+    }
+    
+    return render(request, 'login/dashboard/plil_templates.html', context)
+
+@login_required
+def plil_editar_template(request, template_id):
+    """View para editar template de tarefa"""
+    template = get_object_or_404(TarefaTemplate, id=template_id)
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        messages.error(request, 'Você não tem permissão para editar templates.')
+        return redirect('plil_templates')
+    
+    if request.method == 'POST':
+        form = TarefaTemplateForm(request.POST, request.FILES, instance=template)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'success': True, 'message': 'Template atualizado com sucesso!'})
+        else:
+            return JsonResponse({
+                'success': False,
+                'html': render_to_string('login/dashboard/plil_editar_template_form.html', {
+                    'form': form,
+                    'template': template
+                })
+            })
+    else:
+        form = TarefaTemplateForm(instance=template)
+    
+    return JsonResponse({
+        'html': render_to_string('login/dashboard/plil_editar_template_form.html', {
+            'form': form,
+            'template': template
+        })
+    })
+
+@login_required
+def plil_toggle_template(request, template_id):
+    """View para ativar/desativar template"""
+    template = get_object_or_404(TarefaTemplate, id=template_id)
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        return JsonResponse({'success': False, 'message': 'Sem permissão'})
+    
+    template.ativo = not template.ativo
+    template.save()
+    
+    status = 'ativado' if template.ativo else 'desativado'
+    return JsonResponse({
+        'success': True, 
+        'message': f'Template {status} com sucesso!',
+        'ativo': template.ativo
+    })
+
+@login_required
+def plil_excluir_template(request, template_id):
+    """View para excluir template"""
+    template = get_object_or_404(TarefaTemplate, id=template_id)
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        return JsonResponse({'success': False, 'message': 'Sem permissão'})
+    
+    # Verificar se há tarefas associadas
+    if template.plil_set.exists():
+        return JsonResponse({
+            'success': False, 
+            'message': 'Não é possível excluir template com tarefas associadas'
+        })
+    
+    template.delete()
+    return JsonResponse({'success': True, 'message': 'Template excluído com sucesso!'})
+
+@login_required
+def plil_visualizar_template(request, template_id):
+    """View para visualizar detalhes do template"""
+    template = get_object_or_404(TarefaTemplate, id=template_id)
+    perfil = request.user.perfil
+    
+    # Verificar permissão
+    if perfil.cargo not in ['administrador', 'gerente', 'administrativo']:
+        return JsonResponse({'success': False, 'message': 'Sem permissão'})
+    
+    # Estatísticas do template
+    tarefas = template.plil_set.all()
+    stats = {
+        'total_tarefas': tarefas.count(),
+        'pendentes': tarefas.filter(status='pendente').count(),
+        'executadas': tarefas.filter(status='executada').count(),
+        'atrasadas': tarefas.filter(status='atrasada').count(),
+    }
+    
+    return JsonResponse({
+        'html': render_to_string('login/dashboard/plil_visualizar_template.html', {
+            'template': template,
+            'stats': stats,
+            'tarefas_recentes': tarefas.order_by('-data_atribuicao')[:10]
+        })
+    })
 
 @login_required
 def etiqueta(request):
@@ -568,7 +807,8 @@ def relatorioExtrusoura(request):
     
     # Estatísticas
     total_registros = registros.count()
-    registros_finalizados = registros.filter(fim__isnull=False).count()
+    # Registros finalizados que NÃO são máquina parada
+    registros_finalizados = registros.filter(fim__isnull=False, maquina_parada=False).count()
     registros_em_andamento = registros.filter(fim__isnull=True).count()
     
     # Calcular tempos médios separados
@@ -612,7 +852,7 @@ def relatorioExtrusoura(request):
     # Dados para gráficos
     registros_por_turno = registros.values('turno').annotate(
         total=Count('id'),
-        finalizados=Count('id', filter=Q(fim__isnull=False))
+        finalizados=Count('id', filter=Q(fim__isnull=False, maquina_parada=False))
     ).order_by('turno')
     
     # Estatísticas de máquina parada
@@ -634,7 +874,8 @@ def relatorioExtrusoura(request):
     resumo_turnos = []
     for turno in ['A', 'B', 'C']:
         registros_turno = registros.filter(turno=turno)
-        finalizados_turno = registros_turno.filter(fim__isnull=False).count()
+        # Finalizados que NÃO são máquina parada
+        finalizados_turno = registros_turno.filter(fim__isnull=False, maquina_parada=False).count()
         maquina_parada_turno = registros_turno.filter(maquina_parada=True).count()
         
         resumo_turnos.append({
@@ -885,7 +1126,7 @@ def cadastrosGerenciamento(request):
                 
                 confirmar_reset = request.POST.get('confirmar_reset')
                 if not confirmar_reset:
-                    messages.error(request, 'Você deve confirmar a ação para forçar o reset de senha.')
+                    # messages.error(request, 'Você deve confirmar a ação para forçar o reset de senha.')
                     return redirect('cadastrosGerenciamento')
                 
                 perfil_editado = get_object_or_404(Perfil, id=usuario_id)
@@ -1349,3 +1590,234 @@ def obter_dados_carregamento_excel(request):
 def obter_dados_carregamento_pdf(request):
     """Obtém dados do relatório de carregamento para PDF"""
     return obter_dados_carregamento_excel(request)
+
+@login_required
+def exportar_dados_banco(request):
+    """Endpoint para fornecer TODOS os dados do banco para exportação Excel"""
+    from django.http import JsonResponse
+    from django.utils import timezone
+    
+    try:
+        # 1. Dados de Perfis
+        perfis = []
+        for perfil in Perfil.objects.all():
+            perfis.append([
+                perfil.id,
+                perfil.re,
+                perfil.nome,
+                perfil.sobrenome,
+                perfil.get_cargo_display(),
+                'Ativo' if perfil.ativo else 'Inativo',
+                perfil.data_criacao.strftime('%d/%m/%Y %H:%M')
+            ])
+        
+        # 2. Dados de Fechamento de Turno
+        fechamento_turno = []
+        for fechamento in FechamentoTurno.objects.all():
+            fechamento_turno.append([
+                fechamento.data_hora.strftime('%d/%m/%Y %H:%M'),
+                fechamento.re,
+                fechamento.nome,
+                f'Turno {fechamento.turno}',
+                fechamento.fardo_virgem,
+                fechamento.fardo_laminado,
+                fechamento.total_fardo,
+                fechamento.reversao,
+                fechamento.observacao
+            ])
+        
+        # 3. Dados de Diário de Bordo
+        diario_bordo = []
+        for diario in DiarioBordo.objects.all():
+            diario_bordo.append([
+                diario.data.strftime('%d/%m/%Y') if diario.data else '',
+                f'Turno {diario.turno}' if diario.turno else '',
+                diario.re or '',
+                diario.maquina_rodando,
+                diario.maquina_disponivel,
+                diario.inicio.strftime('%d/%m/%Y %H:%M') if diario.inicio else '',
+                diario.fim.strftime('%d/%m/%Y %H:%M') if diario.fim else '',
+                diario.ocorrencias_turno
+            ])
+        
+        # 4. Dados de Água/Cloro
+        agua_cloro = []
+        for agua in AguaCloro.objects.all():
+            agua_cloro.append([
+                agua.data_hora.strftime('%d/%m/%Y %H:%M'),
+                agua.re,
+                f'Turno {agua.turno}',
+                float(agua.cloro),
+                float(agua.turbidez),
+                agua.observacao
+            ])
+        
+        # 5. Dados de Fechamento Bag
+        fechamento_bag = []
+        for bag in FechamentoBag.objects.all():
+            fechamento_bag.append([
+                bag.data.strftime('%d/%m/%Y'),
+                bag.quantidade,
+                bag.observacoes
+            ])
+        
+        # 6. Dados de Inventário
+        inventario = []
+        for inv in Inventario.objects.all():
+            inventario.append([
+                inv.data.strftime('%d/%m/%Y'),
+                inv.produto,
+                inv.quantidade
+            ])
+        
+        # 7. Dados de Carregamento
+        carregamento = []
+        for carr in Carregamento.objects.all():
+            carregamento.append([
+                carr.data_hora.strftime('%d/%m/%Y %H:%M'),
+                carr.veiculo,
+                carr.quantidade
+            ])
+        
+        # 8. Dados de Templates de Tarefa
+        templates_tarefa = []
+        for template in TarefaTemplate.objects.all():
+            templates_tarefa.append([
+                template.id,
+                template.titulo,
+                template.descricao,
+                template.get_periodicidade_display(),
+                'Ativo' if template.ativo else 'Inativo',
+                template.criado_por.username if template.criado_por else '',
+                template.data_criacao.strftime('%d/%m/%Y %H:%M')
+            ])
+        
+        # 9. Dados de PLIL
+        plil = []
+        for p in Plil.objects.all():
+            plil.append([
+                p.template.titulo,
+                p.re_responsavel,
+                p.nome_responsavel,
+                p.data_prevista.strftime('%d/%m/%Y'),
+                p.data_execucao.strftime('%d/%m/%Y %H:%M') if p.data_execucao else '',
+                p.get_status_display(),
+                p.observacoes_execucao,
+                p.atribuida_por.username if p.atribuida_por else ''
+            ])
+        
+        # 10. Dados de Etiquetas
+        etiquetas = []
+        for etiq in Etiqueta.objects.all():
+            etiquetas.append([
+                etiq.codigo,
+                etiq.produto,
+                etiq.data_criacao.strftime('%d/%m/%Y %H:%M')
+            ])
+        
+        # 11. Dados de Relatório de Turno
+        relatorio_turno = []
+        for rel in RelatorioTurno.objects.all():
+            relatorio_turno.append([
+                rel.data.strftime('%d/%m/%Y'),
+                f'Turno {rel.turno}',
+                rel.conteudo
+            ])
+        
+        # 12. Dados de Relatório de Extrusora
+        relatorio_extrusora = []
+        for rel in RelatorioExtrusoura.objects.all():
+            relatorio_extrusora.append([
+                rel.data.strftime('%d/%m/%Y'),
+                rel.maquina,
+                rel.producao
+            ])
+        
+        # 13. Dados de Cadastro (Equipamentos)
+        equipamentos = []
+        for cadastro in Cadastro.objects.all():
+            equipamentos.append([
+                cadastro.id,
+                cadastro.nome,
+                cadastro.tipo,
+                'Ativo' if cadastro.ativo else 'Inativo',
+                cadastro.data_criacao.strftime('%d/%m/%Y %H:%M')
+            ])
+        
+        # 14. Dados de Produção Mensal
+        producao_mensal = []
+        for prod in ProducaoMensal.objects.all():
+            producao_mensal.append([
+                f'{prod.mes:02d}/{prod.ano}',
+                f'Turno {prod.turno}',
+                prod.total_fardo,
+                prod.total_reversao,
+                prod.ultima_atualizacao.strftime('%d/%m/%Y %H:%M')
+            ])
+        
+        # 15. Dados de Carregamento Dashboard
+        carregamento_dashboard = []
+        for carr in CarregamentoDashboard.objects.all():
+            carregamento_dashboard.append([
+                carr.data.strftime('%d/%m/%Y'),
+                carr.empresa.nome,
+                carr.material,
+                carr.get_status_display(),
+                carr.data_criacao.strftime('%d/%m/%Y %H:%M'),
+                carr.concluido_por.username if carr.concluido_por else '',
+                carr.criado_por.username if carr.criado_por else ''
+            ])
+        
+        # 16. Dados de Empresas
+        empresas = []
+        for emp in Empresa.objects.all():
+            empresas.append([
+                emp.id,
+                emp.nome,
+                'Ativo' if emp.ativo else 'Inativo',
+                emp.data_criacao.strftime('%d/%m/%Y %H:%M')
+            ])
+        
+        # Estruturar resposta com TODOS os dados
+        data = {
+            'perfis': perfis,
+            'fechamento_turno': fechamento_turno,
+            'diario_bordo': diario_bordo,
+            'agua_cloro': agua_cloro,
+            'fechamento_bag': fechamento_bag,
+            'inventario': inventario,
+            'carregamento': carregamento,
+            'templates_tarefa': templates_tarefa,
+            'plil': plil,
+            'etiquetas': etiquetas,
+            'relatorio_turno': relatorio_turno,
+            'relatorio_extrusora': relatorio_extrusora,
+            'equipamentos': equipamentos,
+            'producao_mensal': producao_mensal,
+            'carregamento_dashboard': carregamento_dashboard,
+            'empresas': empresas,
+            'timestamp': timezone.now().isoformat()
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        return JsonResponse({
+            'error': f'Erro ao obter dados: {str(e)}',
+            'perfis': [],
+            'fechamento_turno': [],
+            'diario_bordo': [],
+            'agua_cloro': [],
+            'fechamento_bag': [],
+            'inventario': [],
+            'carregamento': [],
+            'templates_tarefa': [],
+            'plil': [],
+            'etiquetas': [],
+            'relatorio_turno': [],
+            'relatorio_extrusora': [],
+            'equipamentos': [],
+            'producao_mensal': [],
+            'carregamento_dashboard': [],
+            'empresas': []
+        }, status=500)

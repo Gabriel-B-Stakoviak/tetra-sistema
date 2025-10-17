@@ -136,13 +136,65 @@ class Carregamento(models.Model):
     def __str__(self):
         return f"Carregamento - {self.veiculo} ({self.data_hora.strftime('%d/%m/%Y')})"
 
-class Plil(models.Model):
-    data = models.DateField(auto_now_add=True)
-    codigo = models.CharField(max_length=20)
+class TarefaTemplate(models.Model):
+    """Template de tarefa que pode ser reutilizado"""
+    PERIODICIDADE_CHOICES = [
+        ('semanal', 'Semanal'),
+        ('quinzenal', 'Quinzenal'),
+        ('mensal', 'Mensal'),
+    ]
+    
+    titulo = models.CharField(max_length=200)
     descricao = models.TextField()
+    periodicidade = models.CharField(max_length=10, choices=PERIODICIDADE_CHOICES)
+    imagem = models.ImageField(upload_to='plil_templates/', blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+    criado_por = models.ForeignKey(User, on_delete=models.CASCADE)
+    data_criacao = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"PLIL - {self.codigo}"
+        return f"{self.titulo} ({self.get_periodicidade_display()})"
+    
+    class Meta:
+        verbose_name = "Template de Tarefa"
+        verbose_name_plural = "Templates de Tarefas"
+
+class Plil(models.Model):
+    """Tarefa específica atribuída a um RE"""
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('executada', 'Executada'),
+        ('atrasada', 'Atrasada'),
+    ]
+    
+    template = models.ForeignKey(TarefaTemplate, on_delete=models.CASCADE)
+    re_responsavel = models.CharField(max_length=24)
+    nome_responsavel = models.CharField(max_length=124)
+    data_prevista = models.DateField()
+    data_execucao = models.DateTimeField(blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente')
+    observacoes_execucao = models.TextField(blank=True)
+    atribuida_por = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    data_atribuicao = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.template.titulo} - {self.nome_responsavel} ({self.data_prevista})"
+    
+    def is_atrasada(self):
+        from django.utils import timezone
+        return self.status == 'pendente' and self.data_prevista < timezone.now().date()
+    
+    def save(self, *args, **kwargs):
+        from django.utils import timezone
+        # Verificar se a tarefa está atrasada antes de salvar
+        if self.status == 'pendente' and self.data_prevista < timezone.now().date():
+            self.status = 'atrasada'
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        verbose_name = "Tarefa PLIL"
+        verbose_name_plural = "Tarefas PLIL"
+        ordering = ['data_prevista', 'status']
 
 # ================================================================================
 class Etiqueta(models.Model):

@@ -1,0 +1,32 @@
+<form method="post" enctype="multipart/form-data" id="formEditarTemplate" action="{% url 'plil_editar_template' template.id %}">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="id_titulo">Título:</label>
+        {{ form.titulo }}
+    </div>
+    <div class="form-group">
+        <label for="id_descricao">Descrição:</label>
+        {{ form.descricao }}
+    </div>
+    <div class="form-group">
+        <label for="id_periodicidade">Periodicidade:</label>
+        {{ form.periodicidade }}
+    </div>
+    <div class="form-group">
+        <label for="id_imagem">Imagem (opcional):</label>
+        {{ form.imagem }}
+        {% if template.imagem %}
+        <div class="mt-2">
+            <small class="text-muted">Imagem atual: {{ template.imagem.name }}</small>
+        </div>
+        {% endif %}
+    </div>
+    <div class="form-group">
+        <div class="form-check">
+            {{ form.ativo }}
+            <label class="form-check-label" for="id_ativo">
+                Template ativo
+            </label>
+        </div>
+    </div>
+</form>

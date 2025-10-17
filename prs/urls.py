@@ -22,6 +22,15 @@ urlpatterns = [
     path('fechamento-bag-pe/', fechamentoBag, name='fechamento-bag-pe'),
     path('inventario/', inventario, name='inventario'),
     path('plil/', plil, name='plil'),
+    path('plil/criar-template/', plil_criar_template, name='plil_criar_template'),
+    path('plil/atribuir-tarefa/', plil_atribuir_tarefa, name='plil_atribuir_tarefa'),
+    path('plil/executar/<int:tarefa_id>/', plil_executar_tarefa, name='plil_executar_tarefa'),
+    path('plil/remover/<int:tarefa_id>/', plil_remover_tarefa, name='plil_remover_tarefa'),
+    path('plil/templates/', plil_templates, name='plil_templates'),
+    path('plil/templates/editar/<int:template_id>/', plil_editar_template, name='plil_editar_template'),
+    path('plil/templates/toggle/<int:template_id>/', plil_toggle_template, name='plil_toggle_template'),
+    path('plil/templates/excluir/<int:template_id>/', plil_excluir_template, name='plil_excluir_template'),
+    path('plil/templates/visualizar/<int:template_id>/', plil_visualizar_template, name='plil_visualizar_template'),
     path('etiqueta/', etiqueta, name='etiqueta'),
     path('relatorio-turno/', relatorioTurno, name='relatorioTurno'),
     path('relatorio-extrusoura/', relatorioExtrusoura, name='relatorioExtrusoura'),
@@ -38,5 +47,7 @@ urlpatterns = [
     # Exportação de Relatórios
     path('exportar-excel/<str:tipo_relatorio>/', exportar_relatorio_excel, name='exportar_relatorio_excel'),
     path('exportar-pdf/<str:tipo_relatorio>/', exportar_relatorio_pdf, name='exportar_relatorio_pdf'),
+    # Exportação de Dados do Banco
+    path('api/exportar-dados-banco/', exportar_dados_banco, name='exportar_dados_banco'),
     
 ]

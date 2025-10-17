@@ -1,0 +1,855 @@
+{% extends 'internal-base/base-dash.html' %}
+
+{% block title %}Configurações{% endblock %}
+
+{% block title-page %}Configurações do Sistema{% endblock %}
+
+{% block extra_css %}
+<style>
+    .config-container {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin: 20px 0;
+        transition: all 0.3s ease;
+    }
+
+    .config-header {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        padding: 25px;
+        border-radius: 10px 10px 0 0;
+        text-align: center;
+    }
+
+    .config-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 600;
+    }
+
+    .config-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+
+    .config-nav {
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 0;
+    }
+
+    .nav-tabs {
+        border: none;
+        margin: 0;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: 0;
+        padding: 15px 25px;
+        color: #6c757d;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        background: #e9ecef;
+        color: #007bff;
+    }
+
+    .nav-tabs .nav-link.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+    }
+
+    .config-content {
+        padding: 30px;
+    }
+
+    .config-section {
+        margin-bottom: 40px;
+    }
+
+    .section-title {
+        color: #495057;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .config-card {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+    }
+
+    .config-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .config-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .config-item:last-child {
+        border-bottom: none;
+    }
+
+    .config-label {
+        flex: 1;
+    }
+
+    .config-label h6 {
+        margin: 0;
+        color: #495057;
+        font-weight: 600;
+    }
+
+    .config-label p {
+        margin: 5px 0 0 0;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    .config-control {
+        flex-shrink: 0;
+        margin-left: 20px;
+    }
+
+    .form-switch {
+        padding-left: 2.5em;
+    }
+
+    .form-switch .form-check-input {
+        width: 2em;
+        margin-left: -2.5em;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%280,0,0,.25%29'/%3e%3c/svg%3e");
+        background-position: left center;
+        background-size: contain;
+        border-radius: 2em;
+        transition: background-position .15s ease-in-out;
+    }
+
+    .form-switch .form-check-input:checked {
+        background-position: right center;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='rgba%28255,255,255,1.0%29'/%3e%3c/svg%3e");
+    }
+
+    .btn-config {
+        padding: 8px 20px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .status-online {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-offline {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .user-info-card {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 30px;
+    }
+
+    .user-info-card h4 {
+        margin: 0 0 10px 0;
+        font-weight: 600;
+    }
+
+    .user-info-card p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    /* Estilos para o perfil do usuário */
+    .user-profile-info {
+        display: flex;
+        gap: 30px;
+        align-items: flex-start;
+    }
+
+    .profile-avatar {
+        flex-shrink: 0;
+        text-align: center;
+    }
+
+    .profile-details {
+        flex: 1;
+    }
+
+    .info-row {
+        margin-bottom: 20px;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .info-item label {
+        font-weight: 600;
+        color: #495057;
+        font-size: 0.95rem;
+        margin: 0;
+    }
+
+    .info-item label i {
+        margin-right: 8px;
+        color: #007bff;
+        width: 16px;
+    }
+
+    .info-item span {
+        font-size: 1.1rem;
+        color: #212529;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 4px solid #007bff;
+    }
+
+    /* Responsividade para o perfil */
+    @media (max-width: 768px) {
+        .user-profile-info {
+            flex-direction: column;
+            text-align: center;
+            gap: 20px;
+        }
+        
+        .profile-avatar {
+            align-self: center;
+        }
+    }
+
+    /* Tema Escuro */
+    body.dark-mode {
+        background-color: #1a1a1a;
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .config-container {
+        background: #2d2d2d;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    body.dark-mode .config-header {
+        background: linear-gradient(135deg, #0056b3, #003d82);
+    }
+
+    body.dark-mode .config-nav {
+        background: #3a3a3a;
+        border-bottom: 1px solid #555;
+    }
+
+    body.dark-mode .nav-tabs .nav-link {
+        color: #b0b0b0;
+    }
+
+    body.dark-mode .nav-tabs .nav-link:hover {
+        background: #4a4a4a;
+        color: #007bff;
+    }
+
+    body.dark-mode .nav-tabs .nav-link.active {
+        background: #007bff;
+        color: white;
+    }
+
+    body.dark-mode .section-title {
+        color: #e0e0e0;
+        border-bottom: 2px solid #555;
+    }
+
+    body.dark-mode .config-card {
+        background: #3a3a3a;
+        border: 1px solid #555;
+    }
+
+    body.dark-mode .config-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    body.dark-mode .config-item {
+        border-bottom: 1px solid #555;
+    }
+
+    body.dark-mode .config-label h6 {
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .config-label p {
+        color: #b0b0b0;
+    }
+
+    body.dark-mode .user-info-card {
+        background: linear-gradient(135deg, #1e7e34, #17a2b8);
+    }
+
+    body.dark-mode .status-online {
+        background: #155724;
+        color: #d4edda;
+    }
+
+    body.dark-mode .status-offline {
+        background: #721c24;
+        color: #f8d7da;
+    }
+
+    body.dark-mode .status-warning {
+        background: #856404;
+        color: #fff3cd;
+    }
+
+    body.dark-mode .btn-outline-primary {
+        color: #007bff;
+        border-color: #007bff;
+    }
+
+    body.dark-mode .btn-outline-primary:hover {
+        background-color: #007bff;
+        color: white;
+    }
+
+    /* Tema escuro para perfil do usuário */
+    body.dark-mode .info-item label {
+        color: #e0e0e0;
+    }
+
+    body.dark-mode .info-item span {
+        color: #e0e0e0;
+        background: #2d2d2d;
+        border-left-color: #007bff;
+    }
+
+    body.dark-mode .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+    }
+
+    body.dark-mode .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    body.dark-mode .btn-outline-info {
+        color: #17a2b8;
+        border-color: #17a2b8;
+    }
+
+    body.dark-mode .btn-outline-info:hover {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    body.dark-mode .btn-outline-danger {
+        color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    body.dark-mode .btn-outline-danger:hover {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    @media (max-width: 768px) {
+        .config-header {
+            padding: 20px;
+        }
+
+        .config-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .config-content {
+            padding: 20px;
+        }
+
+        .nav-tabs .nav-link {
+            padding: 12px 15px;
+            font-size: 0.9rem;
+        }
+
+        .config-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .config-control {
+            margin-left: 0;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="config-container">
+        <!-- Header -->
+        <div class="config-header">
+            <h1><i class="fas fa-cogs"></i> Configurações</h1>
+            <p>Gerencie as configurações do sistema e sua conta</p>
+        </div>
+
+        <!-- Unified Content -->
+        <div class="config-content" id="configContent">
+            <!-- Seção 1: Aparência -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fas fa-palette"></i>
+                    Aparência
+                </h3>
+                <div class="config-card">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <h6>Tema Escuro</h6>
+                            <p>Ativar modo escuro para reduzir o cansaço visual</p>
+                        </div>
+                        <div class="config-control">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="darkMode">
+                                <label class="form-check-label" for="darkMode"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção 2: Informações da Conta -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fas fa-user"></i>
+                    Informações da Conta
+                </h3>
+                <div class="config-card">
+                    <div class="user-profile-info">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-circle fa-5x text-primary"></i>
+                        </div>
+                        <div class="profile-details">
+                            <div class="info-row">
+                                <div class="info-item">
+                                    <label><i class="fas fa-user"></i> Nome Completo:</label>
+                                    <span>{{ perfil.nome }} {{ perfil.sobrenome }}</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-item">
+                                    <label><i class="fas fa-id-badge"></i> RE (Registro de Empregado):</label>
+                                    <span>{{ perfil.re }}</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-item">
+                                    <label><i class="fas fa-briefcase"></i> Cargo:</label>
+                                    <span>{{ perfil.get_cargo_display }}</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-item">
+                                    <label><i class="fas fa-calendar-alt"></i> Data de Cadastro:</label>
+                                    <span>{{ perfil.user.date_joined|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-item">
+                                    <label><i class="fas fa-clock"></i> Último Acesso:</label>
+                                    <span>{{ perfil.user.last_login|date:"d/m/Y H:i"|default:"Nunca" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção 3: Informações do Sistema -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Informações do Sistema
+                </h3>
+                <div class="config-card">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <h6>Versão do Sistema</h6>
+                            <p>Tetra PRS v2.3.1</p>
+                        </div>
+                        <div class="config-control">
+                            <span class="status-badge status-online">Atualizado</span>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <h6>Status do Servidor</h6>
+                            <p>Servidor operacional</p>
+                        </div>
+                        <div class="config-control">
+                            <span class="status-badge status-online">Online</span>
+                        </div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label">
+                            <h6>Banco de Dados</h6>
+                            <p>Conexão estável</p>
+                        </div>
+                        <div class="config-control">
+                            <span class="status-badge status-online">Conectado</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seção 4: Exportação de Dados -->
+            <div class="config-section">
+                <h3 class="section-title">
+                    <i class="fas fa-file-excel"></i>
+                    Exportação de Dados
+                </h3>
+                <div class="config-card">
+                    <div class="config-item">
+                        <div class="config-label">
+                            <h6>Exportar Dados</h6>
+                            <p>Exportar todas as informações do banco de dados para Excel</p>
+                        </div>
+                        <div class="config-control">
+                            <button class="btn btn-outline-success btn-config" onclick="exportarDados()">
+                                <i class="fas fa-file-excel"></i> Exportar para Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        </div>
+    </div>
+</div>
+
+<!-- Biblioteca SheetJS para geração de Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Configuração do tema escuro
+    const darkModeSwitch = document.getElementById('darkMode');
+
+    // Carregar configuração salva do tema escuro
+    const savedDarkMode = localStorage.getItem('globalDarkMode');
+    if (savedDarkMode !== null) {
+        darkModeSwitch.checked = savedDarkMode === 'true';
+        toggleDarkMode(darkModeSwitch.checked);
+    }
+
+    // Event listener para tema escuro
+    darkModeSwitch.addEventListener('change', function() {
+        localStorage.setItem('globalDarkMode', this.checked);
+        toggleDarkMode(this.checked);
+    });
+
+    // Função para alternar modo escuro
+    function toggleDarkMode(enabled) {
+        if (enabled) {
+            document.body.classList.add('dark-mode');
+        } else {
+            document.body.classList.remove('dark-mode');
+        }
+    }
+
+    // Funções para exportar/importar dados
+    window.exportarDados = async function() {
+        if (confirm('Deseja exportar TODOS os dados do banco para Excel? Esta operação pode demorar alguns segundos.')) {
+            try {
+                // Mostrar indicador de carregamento
+                const originalText = document.querySelector('button[onclick="exportarDados()"]').innerHTML;
+                document.querySelector('button[onclick="exportarDados()"]').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exportando...';
+                document.querySelector('button[onclick="exportarDados()"]').disabled = true;
+                
+                // Buscar dados reais do banco
+                const response = await fetch('/api/exportar-dados-banco/', {
+                    method: 'GET',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || '',
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Erro na requisição: ${response.status}`);
+                }
+                
+                const dadosBanco = await response.json();
+                
+                if (dadosBanco.error) {
+                    throw new Error(dadosBanco.error);
+                }
+                
+                // Criar estrutura de dados organizada por sheets
+                const dataAtual = new Date().toLocaleDateString('pt-BR');
+                const horaAtual = new Date().toLocaleTimeString('pt-BR');
+                
+                // Criar workbook
+                const wb = XLSX.utils.book_new();
+
+                // Função auxiliar para criar cabeçalho padrão
+                function criarCabecalho(titulo) {
+                    return [
+                        ['SISTEMA TETRAPAK - EXPORTAÇÃO COMPLETA DE DADOS'],
+                        [`Gerado em: ${dataAtual} às ${horaAtual}`],
+                        [''],
+                        [titulo],
+                        []
+                    ];
+                }
+
+                // 1. PERFIS DE USUÁRIOS
+                const dadosPerfis = criarCabecalho('PERFIS DE USUÁRIOS');
+                dadosPerfis[4] = ['ID', 'RE', 'Nome', 'Sobrenome', 'Cargo', 'Status', 'Data Criação'];
+                if (dadosBanco.perfis && dadosBanco.perfis.length > 0) {
+                    dadosBanco.perfis.forEach(perfil => dadosPerfis.push(perfil));
+                } else {
+                    dadosPerfis.push(['Nenhum perfil encontrado', '', '', '', '', '', '']);
+                }
+
+                // 2. FECHAMENTO DE TURNO
+                const dadosFechamentoTurno = criarCabecalho('FECHAMENTO DE TURNO');
+                dadosFechamentoTurno[4] = ['Data/Hora', 'RE', 'Nome', 'Turno', 'Fardo Virgem', 'Fardo Laminado', 'Total Fardo', 'Reversão', 'Observação'];
+                if (dadosBanco.fechamento_turno && dadosBanco.fechamento_turno.length > 0) {
+                    dadosBanco.fechamento_turno.forEach(fechamento => dadosFechamentoTurno.push(fechamento));
+                } else {
+                    dadosFechamentoTurno.push(['Nenhum fechamento encontrado', '', '', '', '', '', '', '', '']);
+                }
+
+                // 3. DIÁRIO DE BORDO
+                const dadosDiarioBordo = criarCabecalho('DIÁRIO DE BORDO');
+                dadosDiarioBordo[4] = ['Data', 'Turno', 'RE', 'Máquina Rodando', 'Máquina Disponível', 'Início', 'Fim', 'Ocorrências'];
+                if (dadosBanco.diario_bordo && dadosBanco.diario_bordo.length > 0) {
+                    dadosBanco.diario_bordo.forEach(diario => dadosDiarioBordo.push(diario));
+                } else {
+                    dadosDiarioBordo.push(['Nenhum registro encontrado', '', '', '', '', '', '', '']);
+                }
+
+                // 4. ÁGUA/CLORO
+                const dadosAguaCloro = criarCabecalho('CONTROLE DE ÁGUA E CLORO');
+                dadosAguaCloro[4] = ['Data/Hora', 'RE', 'Turno', 'Cloro', 'Turbidez', 'Observação'];
+                if (dadosBanco.agua_cloro && dadosBanco.agua_cloro.length > 0) {
+                    dadosBanco.agua_cloro.forEach(agua => dadosAguaCloro.push(agua));
+                } else {
+                    dadosAguaCloro.push(['Nenhum registro encontrado', '', '', '', '', '']);
+                }
+
+                // 5. FECHAMENTO BAG
+                const dadosFechamentoBag = criarCabecalho('FECHAMENTO BAG');
+                dadosFechamentoBag[4] = ['Data', 'Quantidade', 'Observações'];
+                if (dadosBanco.fechamento_bag && dadosBanco.fechamento_bag.length > 0) {
+                    dadosBanco.fechamento_bag.forEach(bag => dadosFechamentoBag.push(bag));
+                } else {
+                    dadosFechamentoBag.push(['Nenhum registro encontrado', '', '']);
+                }
+
+                // 6. INVENTÁRIO
+                const dadosInventario = criarCabecalho('INVENTÁRIO');
+                dadosInventario[4] = ['Data', 'Produto', 'Quantidade'];
+                if (dadosBanco.inventario && dadosBanco.inventario.length > 0) {
+                    dadosBanco.inventario.forEach(inv => dadosInventario.push(inv));
+                } else {
+                    dadosInventario.push(['Nenhum registro encontrado', '', '']);
+                }
+
+                // 7. CARREGAMENTO
+                const dadosCarregamento = criarCabecalho('CARREGAMENTO');
+                dadosCarregamento[4] = ['Data/Hora', 'Veículo', 'Quantidade'];
+                if (dadosBanco.carregamento && dadosBanco.carregamento.length > 0) {
+                    dadosBanco.carregamento.forEach(carr => dadosCarregamento.push(carr));
+                } else {
+                    dadosCarregamento.push(['Nenhum registro encontrado', '', '']);
+                }
+
+                // 8. TEMPLATES DE TAREFA
+                const dadosTemplatesTarefa = criarCabecalho('TEMPLATES DE TAREFA');
+                dadosTemplatesTarefa[4] = ['ID', 'Título', 'Descrição', 'Periodicidade', 'Status', 'Criado Por', 'Data Criação'];
+                if (dadosBanco.templates_tarefa && dadosBanco.templates_tarefa.length > 0) {
+                    dadosBanco.templates_tarefa.forEach(template => dadosTemplatesTarefa.push(template));
+                } else {
+                    dadosTemplatesTarefa.push(['Nenhum template encontrado', '', '', '', '', '', '']);
+                }
+
+                // 9. PLIL (TAREFAS)
+                const dadosPlil = criarCabecalho('PLIL - TAREFAS DE MANUTENÇÃO');
+                dadosPlil[4] = ['Título', 'RE Responsável', 'Nome Responsável', 'Data Prevista', 'Data Execução', 'Status', 'Observações', 'Atribuída Por'];
+                if (dadosBanco.plil && dadosBanco.plil.length > 0) {
+                    dadosBanco.plil.forEach(plil => dadosPlil.push(plil));
+                } else {
+                    dadosPlil.push(['Nenhuma tarefa encontrada', '', '', '', '', '', '', '']);
+                }
+
+                // 10. ETIQUETAS
+                const dadosEtiquetas = criarCabecalho('ETIQUETAS');
+                dadosEtiquetas[4] = ['Código', 'Produto', 'Data Criação'];
+                if (dadosBanco.etiquetas && dadosBanco.etiquetas.length > 0) {
+                    dadosBanco.etiquetas.forEach(etiq => dadosEtiquetas.push(etiq));
+                } else {
+                    dadosEtiquetas.push(['Nenhuma etiqueta encontrada', '', '']);
+                }
+
+                // 11. RELATÓRIO DE TURNO
+                const dadosRelatorioTurno = criarCabecalho('RELATÓRIOS DE TURNO');
+                dadosRelatorioTurno[4] = ['Data', 'Turno', 'Conteúdo'];
+                if (dadosBanco.relatorio_turno && dadosBanco.relatorio_turno.length > 0) {
+                    dadosBanco.relatorio_turno.forEach(rel => dadosRelatorioTurno.push(rel));
+                } else {
+                    dadosRelatorioTurno.push(['Nenhum relatório encontrado', '', '']);
+                }
+
+                // 12. RELATÓRIO DE EXTRUSORA
+                const dadosRelatorioExtrusora = criarCabecalho('RELATÓRIOS DE EXTRUSORA');
+                dadosRelatorioExtrusora[4] = ['Data', 'Máquina', 'Produção'];
+                if (dadosBanco.relatorio_extrusora && dadosBanco.relatorio_extrusora.length > 0) {
+                    dadosBanco.relatorio_extrusora.forEach(rel => dadosRelatorioExtrusora.push(rel));
+                } else {
+                    dadosRelatorioExtrusora.push(['Nenhum relatório encontrado', '', '']);
+                }
+
+                // 13. EQUIPAMENTOS
+                const dadosEquipamentos = criarCabecalho('EQUIPAMENTOS E CADASTROS');
+                dadosEquipamentos[4] = ['ID', 'Nome', 'Tipo', 'Status', 'Data Criação'];
+                if (dadosBanco.equipamentos && dadosBanco.equipamentos.length > 0) {
+                    dadosBanco.equipamentos.forEach(eq => dadosEquipamentos.push(eq));
+                } else {
+                    dadosEquipamentos.push(['Nenhum equipamento encontrado', '', '', '', '']);
+                }
+
+                // 14. PRODUÇÃO MENSAL
+                const dadosProducaoMensal = criarCabecalho('PRODUÇÃO MENSAL');
+                dadosProducaoMensal[4] = ['Mês/Ano', 'Turno', 'Total Fardo', 'Total Reversão', 'Última Atualização'];
+                if (dadosBanco.producao_mensal && dadosBanco.producao_mensal.length > 0) {
+                    dadosBanco.producao_mensal.forEach(prod => dadosProducaoMensal.push(prod));
+                } else {
+                    dadosProducaoMensal.push(['Nenhum registro encontrado', '', '', '', '']);
+                }
+
+                // 15. CARREGAMENTO DASHBOARD
+                const dadosCarregamentoDashboard = criarCabecalho('CARREGAMENTO DASHBOARD');
+                dadosCarregamentoDashboard[4] = ['Data', 'Empresa', 'Material', 'Status', 'Data Criação', 'Concluído Por', 'Criado Por'];
+                if (dadosBanco.carregamento_dashboard && dadosBanco.carregamento_dashboard.length > 0) {
+                    dadosBanco.carregamento_dashboard.forEach(carr => dadosCarregamentoDashboard.push(carr));
+                } else {
+                    dadosCarregamentoDashboard.push(['Nenhum registro encontrado', '', '', '', '', '', '']);
+                }
+
+                // 16. EMPRESAS
+                const dadosEmpresas = criarCabecalho('EMPRESAS');
+                dadosEmpresas[4] = ['ID', 'Nome', 'Status', 'Data Criação'];
+                if (dadosBanco.empresas && dadosBanco.empresas.length > 0) {
+                    dadosBanco.empresas.forEach(emp => dadosEmpresas.push(emp));
+                } else {
+                    dadosEmpresas.push(['Nenhuma empresa encontrada', '', '', '']);
+                }
+
+                // Criar todas as worksheets
+                const worksheets = [
+                    { data: dadosPerfis, name: "Perfis" },
+                    { data: dadosFechamentoTurno, name: "Fechamento Turno" },
+                    { data: dadosDiarioBordo, name: "Diário Bordo" },
+                    { data: dadosAguaCloro, name: "Água Cloro" },
+                    { data: dadosFechamentoBag, name: "Fechamento Bag" },
+                    { data: dadosInventario, name: "Inventário" },
+                    { data: dadosCarregamento, name: "Carregamento" },
+                    { data: dadosTemplatesTarefa, name: "Templates Tarefa" },
+                    { data: dadosPlil, name: "PLIL" },
+                    { data: dadosEtiquetas, name: "Etiquetas" },
+                    { data: dadosRelatorioTurno, name: "Relatório Turno" },
+                    { data: dadosRelatorioExtrusora, name: "Relatório Extrusora" },
+                    { data: dadosEquipamentos, name: "Equipamentos" },
+                    { data: dadosProducaoMensal, name: "Produção Mensal" },
+                    { data: dadosCarregamentoDashboard, name: "Carregamento Dash" },
+                    { data: dadosEmpresas, name: "Empresas" }
+                ];
+
+                // Adicionar todas as worksheets ao workbook
+                worksheets.forEach(ws => {
+                    const worksheet = XLSX.utils.aoa_to_sheet(ws.data);
+                    XLSX.utils.book_append_sheet(wb, worksheet, ws.name);
+                });
+
+                // Gerar arquivo Excel
+                const fileName = `dados_completos_tetrapak_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // Contar registros totais
+                let totalRegistros = 0;
+                let resumo = '';
+                
+                Object.keys(dadosBanco).forEach(key => {
+                    if (key !== 'timestamp' && key !== 'error' && Array.isArray(dadosBanco[key])) {
+                        const count = dadosBanco[key].length;
+                        totalRegistros += count;
+                        resumo += `• ${key.replace(/_/g, ' ').toUpperCase()}: ${count} registros\n`;
+                    }
+                });
+                
+                alert(`✅ EXPORTAÇÃO COMPLETA REALIZADA COM SUCESSO!\n\n📊 RESUMO DOS DADOS:\n${resumo}\n📈 TOTAL: ${totalRegistros} registros\n📁 Arquivo: ${fileName}\n\n🎯 Todas as informações do banco de dados foram exportadas em 16 planilhas organizadas!`);
+                
+            } catch (error) {
+                console.error('Erro ao exportar dados:', error);
+                alert(`❌ Erro ao exportar dados: ${error.message}\n\nTente novamente ou contate o suporte.`);
+            } finally {
+                // Restaurar botão
+                const button = document.querySelector('button[onclick="exportarDados()"]');
+                if (button) {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            }
+        }
+    };
+
+
+});
+</script>
+{% endblock %}

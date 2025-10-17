@@ -27,7 +27,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-*p-p@zfpd%y*c!ikgyv9t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,yourusername.pythonanywhere.com', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = [    '127.0.0.1', 'localhost', '.loca.lt']
 
 
 # Application definition
@@ -151,3 +151,5 @@ if not DEBUG:
     # SECURE_SSL_REDIRECT = True
     # SESSION_COOKIE_SECURE = True
     # CSRF_COOKIE_SECURE = True
+
+CSRF_TRUSTED_ORIGINS = ['https://*.loca.lt',]

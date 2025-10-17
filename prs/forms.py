@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Perfil, FechamentoTurno, DiarioBordo, AguaCloro, CarregamentoDashboard, Empresa
+from .models import Perfil, FechamentoTurno, DiarioBordo, AguaCloro, CarregamentoDashboard, Empresa, TarefaTemplate, Plil
 
 class RegistroForm(forms.ModelForm):
     username = forms.CharField(
@@ -292,4 +292,80 @@ class EmpresaForm(forms.ModelForm):
             'cnpj': 'CNPJ',
             'contato': 'Contato',
             'telefone': 'Telefone'
+        }
+
+# ================================================================================
+# FORMULÁRIOS PLIL
+# ================================================================================
+
+class TarefaTemplateForm(forms.ModelForm):
+    class Meta:
+        model = TarefaTemplate
+        fields = ['titulo', 'descricao', 'periodicidade', 'imagem']
+        widgets = {
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: Limpeza da Máquina A'
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Descreva detalhadamente como executar esta tarefa...'
+            }),
+            'periodicidade': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'imagem': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            })
+        }
+        labels = {
+            'titulo': 'Título da Tarefa',
+            'descricao': 'Descrição Detalhada',
+            'periodicidade': 'Periodicidade',
+            'imagem': 'Imagem de Referência (Opcional)'
+        }
+
+class AtribuirTarefaForm(forms.ModelForm):
+    class Meta:
+        model = Plil
+        fields = ['template', 're_responsavel', 'nome_responsavel', 'data_prevista']
+        widgets = {
+            'template': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            're_responsavel': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Digite o RE do responsável'
+            }),
+            'nome_responsavel': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nome do responsável'
+            }),
+            'data_prevista': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            })
+        }
+        labels = {
+            'template': 'Template da Tarefa',
+            're_responsavel': 'RE do Responsável',
+            'nome_responsavel': 'Nome do Responsável',
+            'data_prevista': 'Data Prevista para Execução'
+        }
+
+class ExecutarTarefaForm(forms.ModelForm):
+    class Meta:
+        model = Plil
+        fields = ['observacoes_execucao']
+        widgets = {
+            'observacoes_execucao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Observações sobre a execução da tarefa (opcional)...'
+            })
+        }
+        labels = {
+            'observacoes_execucao': 'Observações da Execução'
         }

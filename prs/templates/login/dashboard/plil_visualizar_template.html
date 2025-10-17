@@ -1,0 +1,103 @@
+<div class="template-details">
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Informações do Template</h5>
+            <table class="table table-sm">
+                <tr>
+                    <td><strong>Título:</strong></td>
+                    <td>{{ template.titulo }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Descrição:</strong></td>
+                    <td>{{ template.descricao|default:"Sem descrição" }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Periodicidade:</strong></td>
+                    <td>{{ template.get_periodicidade_display }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>
+                        {% if template.ativo %}
+                            <span class="badge badge-success">Ativo</span>
+                        {% else %}
+                            <span class="badge badge-danger">Inativo</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>Criado por:</strong></td>
+                    <td>{{ template.criado_por.get_full_name|default:template.criado_por.username }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Data de criação:</strong></td>
+                    <td>{{ template.data_criacao|date:"d/m/Y H:i" }}</td>
+                </tr>
+            </table>
+        </div>
+        <div class="col-md-6">
+            <h5>Estatísticas</h5>
+            <table class="table table-sm">
+                <tr>
+                    <td><strong>Total de tarefas:</strong></td>
+                    <td>{{ stats.total_tarefas }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Pendentes:</strong></td>
+                    <td><span class="badge badge-warning">{{ stats.pendentes }}</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Executadas:</strong></td>
+                    <td><span class="badge badge-success">{{ stats.executadas }}</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Atrasadas:</strong></td>
+                    <td><span class="badge badge-danger">{{ stats.atrasadas }}</span></td>
+                </tr>
+            </table>
+            
+            {% if template.imagem %}
+            <div class="mt-3">
+                <h6>Imagem do Template</h6>
+                <img src="{{ template.imagem.url }}" alt="{{ template.titulo }}" class="img-fluid" style="max-height: 200px;">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    {% if tarefas_recentes %}
+    <div class="mt-4">
+        <h5>Tarefas Recentes</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <thead>
+                    <tr>
+                        <th>Responsável</th>
+                        <th>Data Prevista</th>
+                        <th>Status</th>
+                        <th>Data Atribuição</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tarefa in tarefas_recentes %}
+                    <tr>
+                        <td>{{ tarefa.nome_responsavel }}</td>
+                        <td>{{ tarefa.data_prevista|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if tarefa.status == 'pendente' %}
+                                <span class="badge badge-warning">Pendente</span>
+                            {% elif tarefa.status == 'executada' %}
+                                <span class="badge badge-success">Executada</span>
+                            {% elif tarefa.status == 'atrasada' %}
+                                <span class="badge badge-danger">Atrasada</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tarefa.data_atribuicao|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>

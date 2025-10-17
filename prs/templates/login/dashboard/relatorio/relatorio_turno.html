@@ -90,6 +90,7 @@
                             <th scope="col">Total Fardos</th>
                             <th scope="col">Reversão</th>
                             <th scope="col">Eficiência (%)</th>
+                            <th scope="col">Ocorrências</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -113,6 +114,18 @@
                                     {% widthratio fechamento.total_fardo fechamento.total_fardo|add:fechamento.reversao 100 %}%
                                 {% else %}
                                     0%
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if fechamento.observacao %}
+                                    <button type="button" class="btn btn-sm btn-info" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#modalOcorrencias"
+                                            onclick="mostrarOcorrencias('{{ fechamento.data_hora|date:"d/m/Y" }}', '{{ fechamento.turno }}', '{{ fechamento.nome }}', `{{ fechamento.observacao|escapejs }}`)">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -167,6 +180,48 @@
         <p>Nenhum dado de fechamento de turno encontrado para o período selecionado.</p>
     </div>
 {% endif %}
+
+<!-- Modal para exibir ocorrências -->
+<div class="modal fade" id="modalOcorrencias" tabindex="-1" aria-labelledby="modalOcorrenciasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalOcorrenciasLabel">
+                    <i class="fas fa-clipboard-list"></i> Ocorrências do Turno
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <strong>Data:</strong>
+                        <span id="modalData" class="text-primary"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Turno:</strong>
+                        <span id="modalTurno" class="badge bg-primary"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Responsável:</strong>
+                        <span id="modalResponsavel" class="text-dark"></span>
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <strong>Ocorrências Relatadas:</strong>
+                    <div class="mt-2 p-3 bg-light border rounded">
+                        <p id="modalOcorrenciasTexto" class="mb-0" style="white-space: pre-wrap;"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -261,4 +316,30 @@
     });
 </script>
 {% endif %}
+
+<script>
+// Função para mostrar ocorrências no modal
+function mostrarOcorrencias(data, turno, responsavel, ocorrencias) {
+    // Preencher os dados do modal
+    document.getElementById('modalData').textContent = data;
+    document.getElementById('modalResponsavel').textContent = responsavel;
+    document.getElementById('modalOcorrenciasTexto').textContent = ocorrencias || 'Nenhuma ocorrência relatada.';
+    
+    // Configurar o badge do turno com a cor apropriada
+    const modalTurno = document.getElementById('modalTurno');
+    modalTurno.textContent = 'Turno ' + turno;
+    
+    // Remover classes de cor anteriores
+    modalTurno.classList.remove('bg-primary', 'bg-success', 'bg-warning');
+    
+    // Adicionar a cor apropriada baseada no turno
+    if (turno === 'A') {
+        modalTurno.classList.add('bg-primary');
+    } else if (turno === 'B') {
+        modalTurno.classList.add('bg-success');
+    } else {
+        modalTurno.classList.add('bg-warning');
+    }
+}
+</script>
 {% endblock %}
